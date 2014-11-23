@@ -51,7 +51,7 @@
 
 using namespace std;
 
-MSHRQueue::MSHRQueue(const std::string &_label,
+MSHR2Queue::MSHR2Queue(const std::string &_label,
                      int num_entries, int reserve, int _index)
     : label(_label), numEntries(num_entries + reserve - 1),
       numReserve(reserve), registers(numEntries),
@@ -63,13 +63,13 @@ MSHRQueue::MSHRQueue(const std::string &_label,
     }
 }
 
-MSHR *
-MSHRQueue::findMatch(Addr addr, bool is_secure) const
+MSHR2 *
+MSHR2Queue::findMatch(Addr addr, bool is_secure) const
 {
-    MSHR::ConstIterator i = allocatedList.begin();
-    MSHR::ConstIterator end = allocatedList.end();
+    MSHR2::ConstIterator i = allocatedList.begin();
+    MSHR2::ConstIterator end = allocatedList.end();
     for (; i != end; ++i) {
-        MSHR *mshr = *i;
+        MSHR2 *mshr = *i;
         if (mshr->addr == addr && mshr->isSecure == is_secure) {
             return mshr;
         }
@@ -78,15 +78,15 @@ MSHRQueue::findMatch(Addr addr, bool is_secure) const
 }
 
 bool
-MSHRQueue::findMatches(Addr addr, bool is_secure, vector<MSHR*>& matches) const
+MSHR2Queue::findMatches(Addr addr, bool is_secure, vector<MSHR2*>& matches) const
 {
     // Need an empty vector
     assert(matches.empty());
     bool retval = false;
-    MSHR::ConstIterator i = allocatedList.begin();
-    MSHR::ConstIterator end = allocatedList.end();
+    MSHR2::ConstIterator i = allocatedList.begin();
+    MSHR2::ConstIterator end = allocatedList.end();
     for (; i != end; ++i) {
-        MSHR *mshr = *i;
+        MSHR2 *mshr = *i;
         if (mshr->addr == addr && mshr->isSecure == is_secure) {
             retval = true;
             matches.push_back(mshr);
@@ -97,13 +97,13 @@ MSHRQueue::findMatches(Addr addr, bool is_secure, vector<MSHR*>& matches) const
 
 
 bool
-MSHRQueue::checkFunctional(PacketPtr pkt, Addr blk_addr)
+MSHR2Queue::checkFunctional(PacketPtr pkt, Addr blk_addr)
 {
     pkt->pushLabel(label);
-    MSHR::ConstIterator i = allocatedList.begin();
-    MSHR::ConstIterator end = allocatedList.end();
+    MSHR2::ConstIterator i = allocatedList.begin();
+    MSHR2::ConstIterator end = allocatedList.end();
     for (; i != end; ++i) {
-        MSHR *mshr = *i;
+        MSHR2 *mshr = *i;
         if (mshr->addr == blk_addr && mshr->checkFunctional(pkt)) {
             pkt->popLabel();
             return true;
@@ -114,13 +114,13 @@ MSHRQueue::checkFunctional(PacketPtr pkt, Addr blk_addr)
 }
 
 
-MSHR *
-MSHRQueue::findPending(Addr addr, int size, bool is_secure) const
+MSHR2 *
+MSHR2Queue::findPending(Addr addr, int size, bool is_secure) const
 {
-    MSHR::ConstIterator i = readyList.begin();
-    MSHR::ConstIterator end = readyList.end();
+    MSHR2::ConstIterator i = readyList.begin();
+    MSHR2::ConstIterator end = readyList.end();
     for (; i != end; ++i) {
-        MSHR *mshr = *i;
+        MSHR2 *mshr = *i;
         if (mshr->isSecure == is_secure) {
             if (mshr->addr < addr) {
                 if (mshr->addr + mshr->size > addr)
@@ -135,15 +135,15 @@ MSHRQueue::findPending(Addr addr, int size, bool is_secure) const
 }
 
 
-MSHR::Iterator
-MSHRQueue::addToReadyList(MSHR *mshr)
+MSHR2::Iterator
+MSHR2Queue::addToReadyList(MSHR2 *mshr)
 {
     if (readyList.empty() || readyList.back()->readyTime <= mshr->readyTime) {
         return readyList.insert(readyList.end(), mshr);
     }
 
-    MSHR::Iterator i = readyList.begin();
-    MSHR::Iterator end = readyList.end();
+    MSHR2::Iterator i = readyList.begin();
+    MSHR2::Iterator end = readyList.end();
     for (; i != end; ++i) {
         if ((*i)->readyTime > mshr->readyTime) {
             return readyList.insert(i, mshr);
@@ -154,12 +154,12 @@ MSHRQueue::addToReadyList(MSHR *mshr)
 }
 
 
-MSHR *
-MSHRQueue::allocate(Addr addr, int size, PacketPtr &pkt,
+MSHR2 *
+MSHR2Queue::allocate(Addr addr, int size, PacketPtr &pkt,
                     Tick when, Counter order)
 {
     assert(!freeList.empty());
-    MSHR *mshr = freeList.front();
+    MSHR2 *mshr = freeList.front();
     assert(mshr->getNumTargets() == 0);
     freeList.pop_front();
 
@@ -173,15 +173,15 @@ MSHRQueue::allocate(Addr addr, int size, PacketPtr &pkt,
 
 
 void
-MSHRQueue::deallocate(MSHR *mshr)
+MSHR2Queue::deallocate(MSHR2 *mshr)
 {
     deallocateOne(mshr);
 }
 
-MSHR::Iterator
-MSHRQueue::deallocateOne(MSHR *mshr)
+MSHR2::Iterator
+MSHR2Queue::deallocateOne(MSHR2 *mshr)
 {
-    MSHR::Iterator retval = allocatedList.erase(mshr->allocIter);
+    MSHR2::Iterator retval = allocatedList.erase(mshr->allocIter);
     freeList.push_front(mshr);
     allocated--;
     if (mshr->inService) {
@@ -192,8 +192,8 @@ MSHRQueue::deallocateOne(MSHR *mshr)
     mshr->deallocate();
     if (drainManager && allocated == 0) {
         // Notify the drain manager that we have completed draining if
-        // there are no other outstanding requests in this MSHR queue.
-        DPRINTF(Drain, "MSHRQueue now empty, signalling drained\n");
+        // there are no other outstanding requests in this MSHR2 queue.
+        DPRINTF(Drain, "MSHR2Queue now empty, signalling drained\n");
         drainManager->signalDrainDone();
         drainManager = NULL;
         setDrainState(Drainable::Drained);
@@ -202,7 +202,7 @@ MSHRQueue::deallocateOne(MSHR *mshr)
 }
 
 void
-MSHRQueue::moveToFront(MSHR *mshr)
+MSHR2Queue::moveToFront(MSHR2 *mshr)
 {
     if (!mshr->inService) {
         assert(mshr == *(mshr->readyIter));
@@ -212,7 +212,7 @@ MSHRQueue::moveToFront(MSHR *mshr)
 }
 
 void
-MSHRQueue::markInService(MSHR *mshr, PacketPtr pkt)
+MSHR2Queue::markInService(MSHR2 *mshr, PacketPtr pkt)
 {
     if (mshr->markInService(pkt)) {
         deallocate(mshr);
@@ -223,7 +223,7 @@ MSHRQueue::markInService(MSHR *mshr, PacketPtr pkt)
 }
 
 void
-MSHRQueue::markPending(MSHR *mshr)
+MSHR2Queue::markPending(MSHR2 *mshr)
 {
     assert(mshr->inService);
     mshr->inService = false;
@@ -236,7 +236,7 @@ MSHRQueue::markPending(MSHR *mshr)
 }
 
 bool
-MSHRQueue::forceDeallocateTarget(MSHR *mshr)
+MSHR2Queue::forceDeallocateTarget(MSHR2 *mshr)
 {
     bool was_full = isFull();
     assert(mshr->hasTargets());
@@ -247,17 +247,17 @@ MSHRQueue::forceDeallocateTarget(MSHR *mshr)
         deallocateOne(mshr);
     }
 
-    // Notify if MSHR queue no longer full
+    // Notify if MSHR2 queue no longer full
     return was_full && !isFull();
 }
 
 void
-MSHRQueue::squash(int threadNum)
+MSHR2Queue::squash(int threadNum)
 {
-    MSHR::Iterator i = allocatedList.begin();
-    MSHR::Iterator end = allocatedList.end();
+    MSHR2::Iterator i = allocatedList.begin();
+    MSHR2::Iterator end = allocatedList.end();
     for (; i != end;) {
-        MSHR *mshr = *i;
+        MSHR2 *mshr = *i;
         if (mshr->threadNum == threadNum) {
             while (mshr->hasTargets()) {
                 mshr->popTarget();
@@ -278,7 +278,7 @@ MSHRQueue::squash(int threadNum)
 }
 
 unsigned int
-MSHRQueue::drain(DrainManager *dm)
+MSHR2Queue::drain(DrainManager *dm)
 {
     if (allocated == 0) {
         setDrainState(Drainable::Drained);

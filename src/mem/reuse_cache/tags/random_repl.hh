@@ -39,7 +39,7 @@
 #ifndef __MEM_REUSECACHE__TAGS_RANDOM_REPL_HH__
 #define __MEM_REUSECACHE__TAGS_RANDOM_REPL_HH__
 
-#include "mem/cache/tags/base_set_assoc.hh"
+#include "mem/reuse_cache/tags/base_set_assoc.hh"
 #include "params/RandomRepl.hh"
 
 class RandomRepl : public BaseSetAssoc

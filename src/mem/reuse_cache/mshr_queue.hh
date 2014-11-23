@@ -57,7 +57,7 @@
 /**
  * A Class for maintaining a list of pending and allocated memory requests.
  */
-class MSHRQueue : public Drainable
+class MSHR2Queue : public Drainable
 {
   private:
     /** Local label (for functional print requests) */
@@ -77,19 +77,19 @@ class MSHRQueue : public Drainable
      */
     const int numReserve;
 
-    /**  MSHR storage. */
-    std::vector<MSHR> registers;
+    /**  MSHR2 storage. */
+    std::vector<MSHR2> registers;
     /** Holds pointers to all allocated entries. */
-    MSHR::List allocatedList;
+    MSHR2::List allocatedList;
     /** Holds pointers to entries that haven't been sent to the bus. */
-    MSHR::List readyList;
+    MSHR2::List readyList;
     /** Holds non allocated entries. */
-    MSHR::List freeList;
+    MSHR2::List freeList;
 
     /** Drain manager to inform of a completed drain */
     DrainManager *drainManager;
 
-    MSHR::Iterator addToReadyList(MSHR *mshr);
+    MSHR2::Iterator addToReadyList(MSHR2 *mshr);
 
 
   public:
@@ -97,7 +97,7 @@ class MSHRQueue : public Drainable
     int allocated;
     /** The number of entries that have been forwarded to the bus. */
     int inServiceEntries;
-    /** The index of this queue within the cache (MSHR queue vs. write
+    /** The index of this queue within the cache (MSHR2 queue vs. write
      * buffer). */
     const int index;
 
@@ -107,16 +107,16 @@ class MSHRQueue : public Drainable
      * @param reserve The minimum number of entries needed to satisfy
      * any access.
      */
-    MSHRQueue(const std::string &_label, int num_entries, int reserve,
+    MSHR2Queue(const std::string &_label, int num_entries, int reserve,
               int index);
 
     /**
-     * Find the first MSHR that matches the provided address.
+     * Find the first MSHR2 that matches the provided address.
      * @param addr The address to find.
      * @param is_secure True if the target memory space is secure.
-     * @return Pointer to the matching MSHR, null if not found.
+     * @return Pointer to the matching MSHR2, null if not found.
      */
-    MSHR *findMatch(Addr addr, bool is_secure) const;
+    MSHR2 *findMatch(Addr addr, bool is_secure) const;
 
     /**
      * Find and return all the matching entries in the provided vector.
@@ -127,64 +127,64 @@ class MSHRQueue : public Drainable
      * @todo Typedef the vector??
      */
     bool findMatches(Addr addr, bool is_secure,
-                     std::vector<MSHR*>& matches) const;
+                     std::vector<MSHR2*>& matches) const;
 
     /**
      * Find any pending requests that overlap the given request.
      * @param pkt The request to find.
      * @param is_secure True if the target memory space is secure.
-     * @return A pointer to the earliest matching MSHR.
+     * @return A pointer to the earliest matching MSHR2.
      */
-    MSHR *findPending(Addr addr, int size, bool is_secure) const;
+    MSHR2 *findPending(Addr addr, int size, bool is_secure) const;
 
     bool checkFunctional(PacketPtr pkt, Addr blk_addr);
 
     /**
-     * Allocates a new MSHR for the request and size. This places the request
-     * as the first target in the MSHR.
+     * Allocates a new MSHR2 for the request and size. This places the request
+     * as the first target in the MSHR2.
      * @param pkt The request to handle.
      * @param size The number in bytes to fetch from memory.
-     * @return The a pointer to the MSHR allocated.
+     * @return The a pointer to the MSHR2 allocated.
      *
      * @pre There are free entries.
      */
-    MSHR *allocate(Addr addr, int size, PacketPtr &pkt,
+    MSHR2 *allocate(Addr addr, int size, PacketPtr &pkt,
                    Tick when, Counter order);
 
     /**
-     * Removes the given MSHR from the queue. This places the MSHR on the
+     * Removes the given MSHR2 from the queue. This places the MSHR2 on the
      * free list.
      * @param mshr
      */
-    void deallocate(MSHR *mshr);
+    void deallocate(MSHR2 *mshr);
 
     /**
-     * Remove a MSHR from the queue. Returns an iterator into the
+     * Remove a MSHR2 from the queue. Returns an iterator into the
      * allocatedList for faster squash implementation.
-     * @param mshr The MSHR to remove.
+     * @param mshr The MSHR2 to remove.
      * @return An iterator to the next entry in the allocatedList.
      */
-    MSHR::Iterator deallocateOne(MSHR *mshr);
+    MSHR2::Iterator deallocateOne(MSHR2 *mshr);
 
     /**
-     * Moves the MSHR to the front of the pending list if it is not
+     * Moves the MSHR2 to the front of the pending list if it is not
      * in service.
      * @param mshr The entry to move.
      */
-    void moveToFront(MSHR *mshr);
+    void moveToFront(MSHR2 *mshr);
 
     /**
-     * Mark the given MSHR as in service. This removes the MSHR from the
-     * readyList. Deallocates the MSHR if it does not expect a response.
-     * @param mshr The MSHR to mark in service.
+     * Mark the given MSHR2 as in service. This removes the MSHR2 from the
+     * readyList. Deallocates the MSHR2 if it does not expect a response.
+     * @param mshr The MSHR2 to mark in service.
      */
-    void markInService(MSHR *mshr, PacketPtr pkt);
+    void markInService(MSHR2 *mshr, PacketPtr pkt);
 
     /**
      * Mark an in service entry as pending, used to resend a request.
-     * @param mshr The MSHR to resend.
+     * @param mshr The MSHR2 to resend.
      */
-    void markPending(MSHR *mshr);
+    void markPending(MSHR2 *mshr);
 
     /**
      * Squash outstanding requests with the given thread number. If a request
@@ -194,10 +194,10 @@ class MSHRQueue : public Drainable
     void squash(int threadNum);
 
     /**
-     * Deallocate top target, possibly freeing the MSHR
-     * @return if MSHR queue is no longer full
+     * Deallocate top target, possibly freeing the MSHR2
+     * @return if MSHR2 queue is no longer full
      */
-    bool forceDeallocateTarget(MSHR *mshr);
+    bool forceDeallocateTarget(MSHR2 *mshr);
 
     /**
      * Returns true if the pending list is not empty.
@@ -218,10 +218,10 @@ class MSHRQueue : public Drainable
     }
 
     /**
-     * Returns the MSHR at the head of the readyList.
+     * Returns the MSHR2 at the head of the readyList.
      * @return The next request to service.
      */
-    MSHR *getNextMSHR() const
+    MSHR2 *getNextMSHR() const
     {
         if (readyList.empty() || readyList.front()->readyTime > curTick()) {
             return NULL;

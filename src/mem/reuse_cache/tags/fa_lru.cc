@@ -50,7 +50,7 @@
 
 #include "base/intmath.hh"
 #include "base/misc.hh"
-#include "mem/cache/tags/fa_lru.hh"
+#include "mem/reuse_cache/tags/fa_lru.hh"
 
 using namespace std;
 
@@ -68,7 +68,7 @@ FALRU::FALRU(const Params *p)
     // Track all cache sizes from 128K up by powers of 2
     numCaches = floorLog2(size) - 17;
     if (numCaches >0){
-        cacheBoundaries = new FALRUBlk *[numCaches];
+        cacheBoundaries = new FALRUBlk2 *[numCaches];
         cacheMask = (1 << numCaches) - 1;
     } else {
         cacheMask = 0;
@@ -77,7 +77,7 @@ FALRU::FALRU(const Params *p)
     warmupBound = size/blkSize;
     numBlocks = size/blkSize;
 
-    blks = new FALRUBlk[numBlocks];
+    blks = new FALRUBlk2[numBlocks];
     head = &(blks[0]);
     tail = &(blks[numBlocks-1]);
 
@@ -152,7 +152,7 @@ FALRU::regStats()
     }
 }
 
-FALRUBlk *
+FALRUBlk2 *
 FALRU::hashLookup(Addr addr) const
 {
     tagIterator iter = tagHash.find(addr);
@@ -169,14 +169,14 @@ FALRU::invalidate(FALRU::BlkType *blk)
     tagsInUse--;
 }
 
-FALRUBlk*
+FALRUBlk2*
 FALRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int context_src,
                    int *inCache)
 {
     accesses++;
     int tmp_in_cache = 0;
     Addr blkAddr = blkAlign(addr);
-    FALRUBlk* blk = hashLookup(blkAddr);
+    FALRUBlk2* blk = hashLookup(blkAddr);
 
     if (blk && blk->isValid()) {
         assert(blk->tag == blkAddr);
@@ -208,11 +208,11 @@ FALRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int context_src,
 }
 
 
-FALRUBlk*
+FALRUBlk2*
 FALRU::findBlock(Addr addr, bool is_secure) const
 {
     Addr blkAddr = blkAlign(addr);
-    FALRUBlk* blk = hashLookup(blkAddr);
+    FALRUBlk2* blk = hashLookup(blkAddr);
 
     if (blk && blk->isValid()) {
         assert(blk->tag == blkAddr);
@@ -222,10 +222,10 @@ FALRU::findBlock(Addr addr, bool is_secure) const
     return blk;
 }
 
-FALRUBlk*
+FALRUBlk2*
 FALRU::findVictim(Addr addr)
 {
-    FALRUBlk * blk = tail;
+    FALRUBlk2 * blk = tail;
     assert(blk->inCache == 0);
     moveToHead(blk);
     tagHash.erase(blk->tag);
@@ -250,7 +250,7 @@ FALRU::insertBlock(PacketPtr pkt, FALRU::BlkType *blk)
 }
 
 void
-FALRU::moveToHead(FALRUBlk *blk)
+FALRU::moveToHead(FALRUBlk2 *blk)
 {
     int updateMask = blk->inCache ^ cacheMask;
     for (unsigned i = 0; i < numCaches; i++){
@@ -281,7 +281,7 @@ FALRU::moveToHead(FALRUBlk *blk)
 bool
 FALRU::check()
 {
-    FALRUBlk* blk = head;
+    FALRUBlk2* blk = head;
     int tot_size = 0;
     int boundary = 1<<17;
     int j = 0;

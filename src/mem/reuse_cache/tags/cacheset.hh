@@ -50,7 +50,7 @@
 
 #include <cassert>
 
-#include "mem/cache/blk.hh" // base class
+#include "mem/reuse_cache/blk.hh" // base class
 
 /**
  * An associative set of cache blocks.

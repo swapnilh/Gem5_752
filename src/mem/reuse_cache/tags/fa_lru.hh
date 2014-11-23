@@ -51,21 +51,21 @@
 #include <list>
 
 #include "base/hashmap.hh"
-#include "mem/cache/tags/base.hh"
-#include "mem/cache/blk.hh"
+#include "mem/reuse_cache/tags/base.hh"
+#include "mem/reuse_cache/blk.hh"
 #include "mem/packet.hh"
 #include "params/FALRU.hh"
 
 /**
  * A fully associative cache block.
  */
-class FALRUBlk : public ReuseCacheBlk
+class FALRUBlk2 : public ReuseCacheBlk
 {
 public:
     /** The previous block in LRU order. */
-    FALRUBlk *prev;
+    FALRUBlk2 *prev;
     /** The next block in LRU order. */
-    FALRUBlk *next;
+    FALRUBlk2 *next;
     /** Has this block been touched? */
     bool isTouched;
 
@@ -88,28 +88,28 @@ class FALRU : public BaseTags
 {
   public:
     /** Typedef the block type used in this class. */
-    typedef FALRUBlk BlkType;
+    typedef FALRUBlk2 BlkType;
     /** Typedef a list of pointers to the local block type. */
-    typedef std::list<FALRUBlk*> BlkList;
+    typedef std::list<FALRUBlk2*> BlkList;
 
   protected:
     /** Array of pointers to blocks at the cache size  boundaries. */
-    FALRUBlk **cacheBoundaries;
-    /** A mask for the FALRUBlk::inCache bits. */
+    FALRUBlk2 **cacheBoundaries;
+    /** A mask for the FALRUBlk2::inCache bits. */
     int cacheMask;
     /** The number of different size caches being tracked. */
     unsigned numCaches;
 
     /** The cache blocks. */
-    FALRUBlk *blks;
+    FALRUBlk2 *blks;
 
     /** The MRU block. */
-    FALRUBlk *head;
+    FALRUBlk2 *head;
     /** The LRU block. */
-    FALRUBlk *tail;
+    FALRUBlk2 *tail;
 
     /** Hash table type mapping addresses to cache block pointers. */
-    typedef m5::hash_map<Addr, FALRUBlk *, m5::hash<Addr> > hash_t;
+    typedef m5::hash_map<Addr, FALRUBlk2 *, m5::hash<Addr> > hash_t;
     /** Iterator into the address hash table. */
     typedef hash_t::const_iterator tagIterator;
 
@@ -121,13 +121,13 @@ class FALRU : public BaseTags
      * @param addr The address to find.
      * @return The cache block of the address, if any.
      */
-    FALRUBlk * hashLookup(Addr addr) const;
+    FALRUBlk2 * hashLookup(Addr addr) const;
 
     /**
      * Move a cache block to the MRU position.
      * @param blk The block to promote.
      */
-    void moveToHead(FALRUBlk *blk);
+    void moveToHead(FALRUBlk2 *blk);
 
     /**
      * Check to make sure all the cache boundaries are still where they should
@@ -185,10 +185,10 @@ public:
      * @param is_secure True if the target memory space is secure.
      * @param asid The address space ID.
      * @param lat The latency of the access.
-     * @param inCache The FALRUBlk::inCache flags.
+     * @param inCache The FALRUBlk2::inCache flags.
      * @return Pointer to the cache block.
      */
-    FALRUBlk* accessBlock(Addr addr, bool is_secure, Cycles &lat,
+    FALRUBlk2* accessBlock(Addr addr, bool is_secure, Cycles &lat,
                           int context_src, int *inCache = 0);
 
     /**
@@ -198,14 +198,14 @@ public:
      * @param asid The address space ID.
      * @return Pointer to the cache block.
      */
-    FALRUBlk* findBlock(Addr addr, bool is_secure) const;
+    FALRUBlk2* findBlock(Addr addr, bool is_secure) const;
 
     /**
      * Find a replacement block for the address provided.
      * @param pkt The request to a find a replacement candidate for.
      * @return The block to place the replacement in.
      */
-    FALRUBlk* findVictim(Addr addr);
+    FALRUBlk2* findVictim(Addr addr);
 
     void insertBlock(PacketPtr pkt, BlkType *blk);
 

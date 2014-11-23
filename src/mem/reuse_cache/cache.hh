@@ -285,7 +285,7 @@ class Cache : public ReuseCache
     void satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
                                bool deferred_response = false,
                                bool pending_downgrade = false);
-    bool satisfyMSHR(MSHR *mshr, PacketPtr pkt, BlkType *blk);
+    bool satisfyMSHR(MSHR2 *mshr, PacketPtr pkt, BlkType *blk);
 
     void doTimingSupplyResponse(PacketPtr req_pkt, uint8_t *blk_data,
                                 bool already_copied, bool pending_inval);
@@ -365,7 +365,7 @@ class Cache : public ReuseCache
      * from the prefetcher.  This function is responsible for
      * prioritizing among those sources on the fly.
      */
-    MSHR *getNextMSHR();
+    MSHR2 *getNextMSHR();
 
     /**
      * Selects an outstanding request to service.  Called when the
@@ -380,7 +380,7 @@ class Cache : public ReuseCache
      * are successfully sent.
      * @param pkt The request that was sent on the bus.
      */
-    void markInService(MSHR *mshr, PacketPtr pkt = NULL);
+    void markInService(MSHR2 *mshr, PacketPtr pkt = NULL);
 
     /**
      * Return whether there are any outstanding misses.

@@ -72,7 +72,7 @@
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
 
-class MSHR;
+class MSHR2;
 /**
  * A basic cache interface. Implements some common functions for speed.
  */
@@ -81,7 +81,7 @@ class ReuseCache : public MemObject
     /**
      * Indexes to enumerate the MSHR queues.
      */
-    enum MSHRQueueIndex {
+    enum MSHR2QueueIndex {
         MSHRQueue_MSHRs,
         MSHRQueue_WriteBuffer
     };
@@ -198,15 +198,15 @@ class ReuseCache : public MemObject
   protected:
 
     /** Miss status registers */
-    MSHRQueue mshrQueue;
+    MSHR2Queue mshrQueue;
 
     /** Write/writeback buffer */
-    MSHRQueue writeBuffer;
+    MSHR2Queue writeBuffer;
 
-    MSHR *allocateBufferInternal(MSHRQueue *mq, Addr addr, int size,
+    MSHR2 *allocateBufferInternal(MSHR2Queue *mq, Addr addr, int size,
                                  PacketPtr pkt, Tick time, bool requestBus)
     {
-        MSHR *mshr = mq->allocate(addr, size, pkt, time, order++);
+        MSHR2 *mshr = mq->allocate(addr, size, pkt, time, order++);
 
         if (mq->isFull()) {
             setBlocked((BlockedCause)mq->index);
@@ -219,9 +219,9 @@ class ReuseCache : public MemObject
         return mshr;
     }
 
-    void markInServiceInternal(MSHR *mshr, PacketPtr pkt)
+    void markInServiceInternal(MSHR2 *mshr, PacketPtr pkt)
     {
-        MSHRQueue *mq = mshr->queue;
+        MSHR2Queue *mq = mshr->queue;
         bool wasFull = mq->isFull();
         mq->markInService(mshr, pkt);
         if (wasFull && !mq->isFull()) {
@@ -288,7 +288,7 @@ class ReuseCache : public MemObject
     Cycles blockedCycle;
 
     /** Pointer to the MSHR that has no targets. */
-    MSHR *noTargetMSHR;
+    MSHR2 *noTargetMSHR;
 
     /** The number of misses to trigger an exit event. */
     Counter missCount;
@@ -473,7 +473,7 @@ class ReuseCache : public MemObject
 
     const AddrRangeList &getAddrRanges() const { return addrRanges; }
 
-    MSHR *allocateMissBuffer(PacketPtr pkt, Tick time, bool requestBus)
+    MSHR2 *allocateMissBuffer(PacketPtr pkt, Tick time, bool requestBus)
     {
         assert(!pkt->req->isUncacheable());
         return allocateBufferInternal(&mshrQueue,
@@ -481,7 +481,7 @@ class ReuseCache : public MemObject
                                       pkt, time, requestBus);
     }
 
-    MSHR *allocateWriteBuffer(PacketPtr pkt, Tick time, bool requestBus)
+    MSHR2 *allocateWriteBuffer(PacketPtr pkt, Tick time, bool requestBus)
     {
         assert(pkt->isWrite() && !pkt->isRead());
         return allocateBufferInternal(&writeBuffer,
@@ -489,7 +489,7 @@ class ReuseCache : public MemObject
                                       pkt, time, requestBus);
     }
 
-    MSHR *allocateUncachedReadBuffer(PacketPtr pkt, Tick time, bool requestBus)
+    MSHR2 *allocateUncachedReadBuffer(PacketPtr pkt, Tick time, bool requestBus)
     {
         assert(pkt->req->isUncacheable());
         assert(pkt->isRead());

@@ -249,7 +249,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
 
 template<class TagStore>
 void
-Cache<TagStore>::markInService(MSHR *mshr, PacketPtr pkt)
+Cache<TagStore>::markInService(MSHR2 *mshr, PacketPtr pkt)
 {
     // packet can be either a request or response
 
@@ -595,7 +595,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
         }
 
         Addr blk_addr = blockAlign(pkt->getAddr());
-        MSHR *mshr = mshrQueue.findMatch(blk_addr, pkt->isSecure());
+        MSHR2 *mshr = mshrQueue.findMatch(blk_addr, pkt->isSecure());
 
         // Software prefetch handling:
         // To keep the core from waiting on data it won't look at
@@ -980,7 +980,7 @@ Cache<TagStore>::functionalAccess(PacketPtr pkt, bool fromCpuSide)
     Addr blk_addr = blockAlign(pkt->getAddr());
     bool is_secure = pkt->isSecure();
     BlkType *blk = tags->findBlock(pkt->getAddr(), is_secure);
-    MSHR *mshr = mshrQueue.findMatch(blk_addr, is_secure);
+    MSHR2 *mshr = mshrQueue.findMatch(blk_addr, is_secure);
 
     pkt->pushLabel(name());
 
@@ -1046,7 +1046,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
     assert(pkt->isResponse());
 
     Tick time = clockEdge(hitLatency);
-    MSHR *mshr = dynamic_cast<MSHR*>(pkt->senderState);
+    MSHR2 *mshr = dynamic_cast<MSHR2*>(pkt->senderState);
     bool is_error = pkt->isError();
 
     assert(mshr);
@@ -1060,7 +1060,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
     DPRINTF(Cache, "Handling response to %s for address %x (%s)\n",
             pkt->cmdString(), pkt->getAddr(), pkt->isSecure() ? "s" : "ns");
 
-    MSHRQueue *mq = mshr->queue;
+    MSHR2Queue *mq = mshr->queue;
     bool wasFull = mq->isFull();
 
     if (mshr == noTargetMSHR) {
@@ -1070,7 +1070,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
     }
 
     // Initial target is used just for stats
-    MSHR::Target *initial_tgt = mshr->getTarget();
+    MSHR2::Target *initial_tgt = mshr->getTarget();
     BlkType *blk = tags->findBlock(pkt->getAddr(), pkt->isSecure());
     int stats_cmd_idx = initial_tgt->pkt->cmdToIndex();
     Tick miss_latency = curTick() - initial_tgt->recvTime;
@@ -1111,10 +1111,10 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
     }
 
     while (mshr->hasTargets()) {
-        MSHR::Target *target = mshr->getTarget();
+        MSHR2::Target *target = mshr->getTarget();
 
         switch (target->source) {
-          case MSHR::Target::FromCPU:
+          case MSHR2::Target::FromCPU:
             Tick completion_time;
 
             // Software prefetch handling for cache closest to core
@@ -1233,7 +1233,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
             cpuSidePort->schedTimingResp(target->pkt, completion_time);
             break;
 
-          case MSHR::Target::FromPrefetcher:
+          case MSHR2::Target::FromPrefetcher:
             assert(target->pkt->cmd == MemCmd::HardPFReq);
             if (blk)
                 blk->status |= BlkHWPrefetched;
@@ -1241,7 +1241,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
             delete target->pkt;
             break;
 
-          case MSHR::Target::FromSnoop:
+          case MSHR2::Target::FromSnoop:
             // I don't believe that a snoop can be in an error state
             assert(!is_error);
             // response to snoop request
@@ -1429,7 +1429,7 @@ Cache<TagStore>::allocateBlock(Addr addr, bool is_secure,
 
     if (blk->isValid()) {
         Addr repl_addr = tags->regenerateBlkAddr(blk->tag, blk->set);
-        MSHR *repl_mshr = mshrQueue.findMatch(repl_addr, blk->isSecure());
+        MSHR2 *repl_mshr = mshrQueue.findMatch(repl_addr, blk->isSecure());
         if (repl_mshr) {
             // must be an outstanding upgrade request (common case)
             // or WriteInvalidate pending writeback (very uncommon case)
@@ -1760,7 +1760,7 @@ Cache<TagStore>::recvTimingSnoopReq(PacketPtr pkt)
     BlkType *blk = tags->findBlock(pkt->getAddr(), is_secure);
 
     Addr blk_addr = blockAlign(pkt->getAddr());
-    MSHR *mshr = mshrQueue.findMatch(blk_addr, is_secure);
+    MSHR2 *mshr = mshrQueue.findMatch(blk_addr, is_secure);
 
     // Squash any prefetch requests from below on MSHR hits
     if (mshr && pkt->cmd == MemCmd::HardPFReq) {
@@ -1783,7 +1783,7 @@ Cache<TagStore>::recvTimingSnoopReq(PacketPtr pkt)
     }
 
     //We also need to check the writeback buffers and handle those
-    std::vector<MSHR *> writebacks;
+    std::vector<MSHR2 *> writebacks;
     if (writeBuffer.findMatches(blk_addr, is_secure, writebacks)) {
         DPRINTF(Cache, "Snoop hit in writeback to addr: %x (%s)\n",
                 pkt->getAddr(), is_secure ? "s" : "ns");
@@ -1858,12 +1858,12 @@ Cache<TagStore>::recvAtomicSnoop(PacketPtr pkt)
 
 
 template<class TagStore>
-MSHR *
+MSHR2 *
 Cache<TagStore>::getNextMSHR()
 {
     // Check both MSHR queue and write buffer for potential requests
-    MSHR *miss_mshr  = mshrQueue.getNextMSHR();
-    MSHR *write_mshr = writeBuffer.getNextMSHR();
+    MSHR2 *miss_mshr  = mshrQueue.getNextMSHR();
+    MSHR2 *write_mshr = writeBuffer.getNextMSHR();
 
     // Now figure out which one to send... some cases are easy
     if (miss_mshr && !write_mshr) {
@@ -1879,7 +1879,7 @@ Cache<TagStore>::getNextMSHR()
         if (writeBuffer.isFull() && writeBuffer.inServiceEntries == 0) {
             // Write buffer is full, so we'd like to issue a write;
             // need to search MSHR queue for conflicting earlier miss.
-            MSHR *conflict_mshr =
+            MSHR2 *conflict_mshr =
                 mshrQueue.findPending(write_mshr->addr, write_mshr->size,
                                       write_mshr->isSecure);
 
@@ -1894,7 +1894,7 @@ Cache<TagStore>::getNextMSHR()
 
         // Write buffer isn't full, but need to check it for
         // conflicting earlier writeback
-        MSHR *conflict_mshr =
+        MSHR2 *conflict_mshr =
             writeBuffer.findPending(miss_mshr->addr, miss_mshr->size,
                                     miss_mshr->isSecure);
         if (conflict_mshr) {
@@ -1949,7 +1949,7 @@ template<class TagStore>
 PacketPtr
 Cache<TagStore>::getTimingPacket()
 {
-    MSHR *mshr = getNextMSHR();
+    MSHR2 *mshr = getNextMSHR();
 
     if (mshr == NULL) {
         return NULL;
@@ -2200,7 +2200,7 @@ Cache<TagStore>::MemSidePacketQueue::sendDeferredPacket()
             // we snoop another cache's ReadEx.
             waitingOnRetry = false;
         } else {
-            MSHR *mshr = dynamic_cast<MSHR*>(pkt->senderState);
+            MSHR2 *mshr = dynamic_cast<MSHR2*>(pkt->senderState);
 
             waitingOnRetry = !masterPort.sendTimingReq(pkt);
 

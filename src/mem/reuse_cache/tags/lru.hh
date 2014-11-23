@@ -50,7 +50,7 @@
 #ifndef __MEM_REUSECACHE__TAGS_LRU_HH__
 #define __MEM_REUSECACHE__TAGS_LRU_HH__
 
-#include "mem/cache/tags/base_set_assoc.hh"
+#include "mem/reuse_cache/tags/base_set_assoc.hh"
 #include "params/LRU.hh"
 
 class LRU : public BaseSetAssoc

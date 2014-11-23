@@ -54,20 +54,20 @@
 #include "mem/packet.hh"
 
 class ReuseCacheBlk;
-class MSHRQueue;
+class MSHR2Queue;
 
 /**
  * Miss Status and handling Register. This class keeps all the information
  * needed to handle a cache miss including a list of target requests.
  * @sa  \ref gem5MemorySystem "gem5 Memory System"
  */
-class MSHR : public Packet::SenderState, public Printable
+class MSHR2 : public Packet::SenderState, public Printable
 {
 
     /**
-     * Consider the MSHRQueue a friend to avoid making everything public
+     * Consider the MSHR2Queue a friend to avoid making everything public
      */
-    friend class MSHRQueue;
+    friend class MSHR2Queue;
 
   private:
 
@@ -111,7 +111,7 @@ class MSHR : public Packet::SenderState, public Printable
         Counter order;  //!< Global order (for memory consistency mgmt)
         PacketPtr pkt;  //!< Pending request packet.
         Source source;  //!< Did request come from cpu, memory, or prefetcher?
-        bool markedPending; //!< Did we mark upstream MSHR
+        bool markedPending; //!< Did we mark upstream MSHR2
                             //!<  as downstreamPending?
 
         Target(PacketPtr _pkt, Tick _readyTime, Counter _order,
@@ -142,15 +142,15 @@ class MSHR : public Packet::SenderState, public Printable
                    const std::string &prefix) const;
     };
 
-    /** A list of MSHRs. */
-    typedef std::list<MSHR *> List;
-    /** MSHR list iterator. */
+    /** A list of MSHR2s. */
+    typedef std::list<MSHR2 *> List;
+    /** MSHR2 list iterator. */
     typedef List::iterator Iterator;
-    /** MSHR list const_iterator. */
+    /** MSHR2 list const_iterator. */
     typedef List::const_iterator ConstIterator;
 
-    /** Pointer to queue containing this MSHR. */
-    MSHRQueue *queue;
+    /** Pointer to queue containing this MSHR2. */
+    MSHR2Queue *queue;
 
     /** Order number assigned by the miss queue. */
     Counter order;
@@ -204,14 +204,14 @@ class MSHR : public Packet::SenderState, public Printable
     uint8_t *data;
 
     /**
-     * Pointer to this MSHR on the ready list.
-     * @sa MissQueue, MSHRQueue::readyList
+     * Pointer to this MSHR2 on the ready list.
+     * @sa MissQueue, MSHR2Queue::readyList
      */
     Iterator readyIter;
 
     /**
-     * Pointer to this MSHR on the allocated list.
-     * @sa MissQueue, MSHRQueue::allocatedList
+     * Pointer to this MSHR2 on the allocated list.
+     * @sa MissQueue, MSHR2Queue::allocatedList
      */
     Iterator allocIter;
 
@@ -227,7 +227,7 @@ class MSHR : public Packet::SenderState, public Printable
     bool isObsolete() const { return _isObsolete; }
 
     /**
-     * Allocate a miss to this MSHR.
+     * Allocate a miss to this MSHR2.
      * @param cmd The requesting command.
      * @param addr The address of the miss.
      * @param asid The address space id of the miss.
@@ -242,7 +242,7 @@ class MSHR : public Packet::SenderState, public Printable
     void clearDownstreamPending();
 
     /**
-     * Mark this MSHR as free.
+     * Mark this MSHR2 as free.
      */
     void deallocate();
 
@@ -254,7 +254,7 @@ class MSHR : public Packet::SenderState, public Printable
     bool handleSnoop(PacketPtr target, Counter order);
 
     /** A simple constructor. */
-    MSHR();
+    MSHR2();
 
     /**
      * Returns the current number of allocated targets.
@@ -301,14 +301,14 @@ class MSHR : public Packet::SenderState, public Printable
 
     bool checkFunctional(PacketPtr pkt);
 
-    /** Mark this MSHR as tracking a transaction with obsoleted data. It still
+    /** Mark this MSHR2 as tracking a transaction with obsoleted data. It still
       * needs to complete its lifecycle, but should not modify the cache. */
     void markObsolete() {
         _isObsolete = true;
     }
 
     /**
-     * Prints the contents of this MSHR for debugging.
+     * Prints the contents of this MSHR2 for debugging.
      */
     void print(std::ostream &os,
                int verbosity = 0,

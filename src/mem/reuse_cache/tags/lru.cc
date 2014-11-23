@@ -46,8 +46,8 @@
  */
 
 #include "debug/CacheRepl.hh"
-#include "mem/cache/tags/lru.hh"
-#include "mem/cache/base.hh"
+#include "mem/reuse_cache/tags/lru.hh"
+#include "mem/reuse_cache/base.hh"
 
 LRU::LRU(const Params *p)
     : BaseSetAssoc(p)

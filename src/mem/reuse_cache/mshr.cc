@@ -61,7 +61,7 @@
 
 using namespace std;
 
-MSHR::MSHR() : readyTime(0), _isUncacheable(false), downstreamPending(false),
+MSHR2::MSHR2() : readyTime(0), _isUncacheable(false), downstreamPending(false),
                pendingDirty(false), pendingClean(false),
                postInvalidate(false), postDowngrade(false),
                _isObsolete(false), queue(NULL), order(0), addr(0),
@@ -71,13 +71,13 @@ MSHR::MSHR() : readyTime(0), _isUncacheable(false), downstreamPending(false),
 }
 
 
-MSHR::TargetList::TargetList()
+MSHR2::TargetList::TargetList()
     : needsExclusive(false), hasUpgrade(false)
 {}
 
 
 inline void
-MSHR::TargetList::add(PacketPtr pkt, Tick readyTime,
+MSHR2::TargetList::add(PacketPtr pkt, Tick readyTime,
                       Counter order, Target::Source source, bool markPending)
 {
     if (source != Target::FromSnoop) {
@@ -85,7 +85,7 @@ MSHR::TargetList::add(PacketPtr pkt, Tick readyTime,
             needsExclusive = true;
         }
 
-        // StoreCondReq is effectively an upgrade if it's in an MSHR
+        // StoreCondReq is effectively an upgrade if it's in an MSHR2
         // since it would have been failed already if we didn't have a
         // read-only copy
         if (pkt->isUpgrade() || pkt->cmd == MemCmd::StoreCondReq) {
@@ -95,9 +95,9 @@ MSHR::TargetList::add(PacketPtr pkt, Tick readyTime,
 
     if (markPending) {
         // Iterate over the SenderState stack and see if we find
-        // an MSHR entry. If we do, set the downstreamPending
+        // an MSHR2 entry. If we do, set the downstreamPending
         // flag. Otherwise, do nothing.
-        MSHR *mshr = pkt->findNextSenderState<MSHR>();
+        MSHR2 *mshr = pkt->findNextSenderState<MSHR2>();
         if (mshr != NULL) {
             assert(!mshr->downstreamPending);
             mshr->downstreamPending = true;
@@ -125,7 +125,7 @@ replaceUpgrade(PacketPtr pkt)
 
 
 void
-MSHR::TargetList::replaceUpgrades()
+MSHR2::TargetList::replaceUpgrades()
 {
     if (!hasUpgrade)
         return;
@@ -140,18 +140,18 @@ MSHR::TargetList::replaceUpgrades()
 
 
 void
-MSHR::TargetList::clearDownstreamPending()
+MSHR2::TargetList::clearDownstreamPending()
 {
     Iterator end_i = end();
     for (Iterator i = begin(); i != end_i; ++i) {
         if (i->markedPending) {
             // Iterate over the SenderState stack and see if we find
-            // an MSHR entry. If we find one, clear the
+            // an MSHR2 entry. If we find one, clear the
             // downstreamPending flag by calling
             // clearDownstreamPending(). This recursively clears the
             // downstreamPending flag in all caches this packet has
             // passed through.
-            MSHR *mshr = i->pkt->findNextSenderState<MSHR>();
+            MSHR2 *mshr = i->pkt->findNextSenderState<MSHR2>();
             if (mshr != NULL) {
                 mshr->clearDownstreamPending();
             }
@@ -161,7 +161,7 @@ MSHR::TargetList::clearDownstreamPending()
 
 
 bool
-MSHR::TargetList::checkFunctional(PacketPtr pkt)
+MSHR2::TargetList::checkFunctional(PacketPtr pkt)
 {
     Iterator end_i = end();
     for (Iterator i = begin(); i != end_i; ++i) {
@@ -175,7 +175,7 @@ MSHR::TargetList::checkFunctional(PacketPtr pkt)
 
 
 void
-MSHR::TargetList::
+MSHR2::TargetList::
 print(std::ostream &os, int verbosity, const std::string &prefix) const
 {
     ConstIterator end_i = end();
@@ -202,7 +202,7 @@ print(std::ostream &os, int verbosity, const std::string &prefix) const
 
 
 void
-MSHR::allocate(Addr _addr, int _size, PacketPtr target, Tick whenReady,
+MSHR2::allocate(Addr _addr, int _size, PacketPtr target, Tick whenReady,
                Counter _order)
 {
     addr = _addr;
@@ -219,7 +219,7 @@ MSHR::allocate(Addr _addr, int _size, PacketPtr target, Tick whenReady,
     _isObsolete = false;
     threadNum = 0;
     assert(targets.isReset());
-    // Don't know of a case where we would allocate a new MSHR for a
+    // Don't know of a case where we would allocate a new MSHR2 for a
     // snoop (mem-side request), so set source according to request here
     Target::Source source = (target->cmd == MemCmd::HardPFReq) ?
         Target::FromPrefetcher : Target::FromCPU;
@@ -230,17 +230,17 @@ MSHR::allocate(Addr _addr, int _size, PacketPtr target, Tick whenReady,
 
 
 void
-MSHR::clearDownstreamPending()
+MSHR2::clearDownstreamPending()
 {
     assert(downstreamPending);
     downstreamPending = false;
-    // recursively clear flag on any MSHRs we will be forwarding
+    // recursively clear flag on any MSHR2s we will be forwarding
     // responses to
     targets.clearDownstreamPending();
 }
 
 bool
-MSHR::markInService(PacketPtr pkt)
+MSHR2::markInService(PacketPtr pkt)
 {
     assert(!inService);
     if (isForwardNoResponse()) {
@@ -268,7 +268,7 @@ MSHR::markInService(PacketPtr pkt)
 
 
 void
-MSHR::deallocate()
+MSHR2::deallocate()
 {
     assert(targets.empty());
     targets.resetFlags();
@@ -277,12 +277,12 @@ MSHR::deallocate()
 }
 
 /*
- * Adds a target to an MSHR
+ * Adds a target to an MSHR2
  */
 void
-MSHR::allocateTarget(PacketPtr pkt, Tick whenReady, Counter _order)
+MSHR2::allocateTarget(PacketPtr pkt, Tick whenReady, Counter _order)
 {
-    // if there's a request already in service for this MSHR, we will
+    // if there's a request already in service for this MSHR2, we will
     // have to defer the new target until after the response if any of
     // the following are true:
     // - there are other targets already deferred
@@ -315,7 +315,7 @@ MSHR::allocateTarget(PacketPtr pkt, Tick whenReady, Counter _order)
 }
 
 bool
-MSHR::handleSnoop(PacketPtr pkt, Counter _order)
+MSHR2::handleSnoop(PacketPtr pkt, Counter _order)
 {
     DPRINTF(Cache, "%s for %s address %x size %d\n", __func__,
             pkt->cmdString(), pkt->getAddr(), pkt->getSize());
@@ -323,8 +323,8 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
         // Request has not been issued yet, or it's been issued
         // locally but is buffered unissued at some downstream cache
         // which is forwarding us this snoop.  Either way, the packet
-        // we're snooping logically precedes this MSHR's request, so
-        // the snoop has no impact on the MSHR, but must be processed
+        // we're snooping logically precedes this MSHR2's request, so
+        // the snoop has no impact on the MSHR2, but must be processed
         // in the standard way by the cache.  The only exception is
         // that if we're an L2+ cache buffering an UpgradeReq from a
         // higher-level cache, and the snoop is invalidating, then our
@@ -341,7 +341,7 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
         return false;
     }
 
-    // From here on down, the request issued by this MSHR logically
+    // From here on down, the request issued by this MSHR2 logically
     // precedes the request we're snooping.
     if (pkt->needsExclusive()) {
         // snooped request still precedes the re-request we'll have to
@@ -371,7 +371,7 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
                      downstreamPending && targets.needsExclusive);
 
         // WriteInvalidates must writeback and should not be inhibited on
-        // account of its snoops discovering MSHRs wanting exclusive access
+        // account of its snoops discovering MSHR2s wanting exclusive access
         // to what it wrote.  We don't want to push this check higher,
         // however, because we want to be sure to add an invalidating
         // Target::FromSnoop, above.
@@ -385,7 +385,7 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
             postInvalidate = true;
 
             // Do not defer (i.e. return true) the snoop if the block is
-            // going to be clean once the MSHR completes, as the data is
+            // going to be clean once the MSHR2 completes, as the data is
             // ready now.
             if (isPendingClean()) {
                 return false;
@@ -405,7 +405,7 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
 
 
 bool
-MSHR::promoteDeferredTargets()
+MSHR2::promoteDeferredTargets()
 {
     assert(targets.empty());
     if (deferredTargets.empty()) {
@@ -426,7 +426,7 @@ MSHR::promoteDeferredTargets()
 
 
 void
-MSHR::handleFill(Packet *pkt, ReuseCacheBlk *blk)
+MSHR2::handleFill(Packet *pkt, ReuseCacheBlk *blk)
 {
     if (!pkt->sharedAsserted()
         && !(hasPostInvalidate() || hasPostDowngrade())
@@ -453,9 +453,9 @@ MSHR::handleFill(Packet *pkt, ReuseCacheBlk *blk)
 
 
 bool
-MSHR::checkFunctional(PacketPtr pkt)
+MSHR2::checkFunctional(PacketPtr pkt)
 {
-    // For printing, we treat the MSHR as a whole as single entity.
+    // For printing, we treat the MSHR2 as a whole as single entity.
     // For other requests, we iterate over the individual targets
     // since that's where the actual data lies.
     if (pkt->isPrint()) {
@@ -469,7 +469,7 @@ MSHR::checkFunctional(PacketPtr pkt)
 
 
 void
-MSHR::print(std::ostream &os, int verbosity, const std::string &prefix) const
+MSHR2::print(std::ostream &os, int verbosity, const std::string &prefix) const
 {
     ccprintf(os, "%s[%x:%x](%s) %s %s %s state: %s %s %s %s %s\n",
              prefix, addr, addr+size-1,
@@ -492,7 +492,7 @@ MSHR::print(std::ostream &os, int verbosity, const std::string &prefix) const
 }
 
 std::string
-MSHR::print() const
+MSHR2::print() const
 {
     ostringstream str;
     print(str);

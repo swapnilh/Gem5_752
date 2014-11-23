@@ -82,6 +82,8 @@ enum ReuseCacheBlkStatusBits {
  * A Basic Cache block.
  * Contains the tag, status, and a pointer to data.
  */
+
+
 class ReuseCacheBlk
 {
   public:

@@ -46,7 +46,7 @@ from Tags import *
 
 class ReuseCache(MemObject):
     type = 'ReuseCache'
-    cxx_header = "mem/cache/base.hh"
+    cxx_header = "mem/reuse_cache/base.hh"
     assoc = Param.Int("associativity")
     hit_latency = Param.Cycles("The hit latency for this cache")
     response_latency = Param.Cycles(

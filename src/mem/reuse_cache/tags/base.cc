@@ -47,8 +47,8 @@
  */
 
 #include "cpu/smt.hh" //maxThreadsPerCPU
-#include "mem/cache/tags/base.hh"
-#include "mem/cache/base.hh"
+#include "mem/reuse_cache/tags/base.hh"
+#include "mem/reuse_cache/base.hh"
 #include "sim/sim_exit.hh"
 
 using namespace std;

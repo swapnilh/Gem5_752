@@ -54,7 +54,7 @@ class L1Cache(BaseCache):
     tgts_per_mshr = 20
     is_top_level = True
 
-class L2Cache(BaseCache):
+class L2Cache(ReuseCache):
     assoc = 8
     hit_latency = 20
     response_latency = 20
