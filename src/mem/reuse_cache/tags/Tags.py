@@ -42,7 +42,7 @@ from ClockedObject import ClockedObject
 class BaseTags(ClockedObject):
     type = 'BaseTags'
     abstract = True
-    cxx_header = "mem/cache/tags/base.hh"
+    cxx_header = "mem/reuse_cache/tags/base.hh"
     # Get the size from the parent (cache)
     size = Param.MemorySize(Parent.size, "capacity in bytes")
 
@@ -56,7 +56,7 @@ class BaseTags(ClockedObject):
 class BaseSetAssoc(BaseTags):
     type = 'BaseSetAssoc'
     abstract = True
-    cxx_header = "mem/cache/tags/base_set_assoc.hh"
+    cxx_header = "mem/reuse_cache/tags/base_set_assoc.hh"
     assoc = Param.Int(Parent.assoc, "associativity")
     sequential_access = Param.Bool(Parent.sequential_access,
         "Whether to access tags and data sequentially")
@@ -64,14 +64,14 @@ class BaseSetAssoc(BaseTags):
 class LRU(BaseSetAssoc):
     type = 'LRU'
     cxx_class = 'LRU'
-    cxx_header = "mem/cache/tags/lru.hh"
+    cxx_header = "mem/reuse_cache/tags/lru.hh"
 
 class RandomRepl(BaseSetAssoc):
     type = 'RandomRepl'
     cxx_class = 'RandomRepl'
-    cxx_header = "mem/cache/tags/random_repl.hh"
+    cxx_header = "mem/reuse_cache/tags/random_repl.hh"
 
 class FALRU(BaseTags):
     type = 'FALRU'
     cxx_class = 'FALRU'
-    cxx_header = "mem/cache/tags/fa_lru.hh"
+    cxx_header = "mem/reuse_cache/tags/fa_lru.hh"
