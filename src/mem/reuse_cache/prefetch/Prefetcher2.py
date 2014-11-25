@@ -42,10 +42,10 @@ from ClockedObject import ClockedObject
 from m5.params import *
 from m5.proxy import *
 
-class BasePrefetcher(ClockedObject):
-    type = 'BasePrefetcher'
+class BasePrefetcher2(ClockedObject):
+    type = 'BasePrefetcher2'
     abstract = True
-    cxx_header = "mem/cache/prefetch/base.hh"
+    cxx_header = "mem/reuse_cache/prefetch/base.hh"
     size = Param.Int(100,
          "Number of entries in the hardware prefetch queue")
     cross_pages = Param.Bool(False,
@@ -69,15 +69,15 @@ class BasePrefetcher(ClockedObject):
          "Perform a tagged prefetch for instruction fetches always")
     sys = Param.System(Parent.any, "System this prefetcher belongs to")
 
-class StridePrefetcher(BasePrefetcher):
-    type = 'StridePrefetcher'
-    cxx_class = 'StridePrefetcher'
-    cxx_header = "mem/cache/prefetch/stride.hh"
+class StridePrefetcher2(BasePrefetcher2):
+    type = 'StridePrefetcher2'
+    cxx_class = 'StridePrefetcher2'
+    cxx_header = "mem/reuse_cache/prefetch/stride.hh"
 
-class TaggedPrefetcher(BasePrefetcher):
-    type = 'TaggedPrefetcher'
-    cxx_class = 'TaggedPrefetcher'
-    cxx_header = "mem/cache/prefetch/tagged.hh"
+class TaggedPrefetcher2(BasePrefetcher2):
+    type = 'TaggedPrefetcher2'
+    cxx_class = 'TaggedPrefetcher2'
+    cxx_header = "mem/reuse_cache/prefetch/tagged.hh"
 
 
 

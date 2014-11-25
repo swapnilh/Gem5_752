@@ -37,16 +37,16 @@
 #define __MEM_REUSECACHE_PREFETCH_TAGGED_PREFETCHER_HH__
 
 #include "mem/reuse_cache/prefetch/base.hh"
-#include "params/TaggedPrefetcher.hh"
+#include "params/TaggedPrefetcher2.hh"
 
 
-class TaggedPrefetcher : public BasePrefetcher
+class TaggedPrefetcher2 : public BasePrefetcher2
 {
   public:
 
-    TaggedPrefetcher(const Params *p);
+    TaggedPrefetcher2(const Params *p);
 
-    ~TaggedPrefetcher() {}
+    ~TaggedPrefetcher2() {}
 
     void calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
                            std::list<Cycles> &delays);

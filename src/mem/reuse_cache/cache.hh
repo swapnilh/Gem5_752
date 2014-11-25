@@ -59,7 +59,7 @@
 #include "sim/eventq.hh"
 
 //Forward decleration
-class BasePrefetcher;
+class BasePrefetcher2;
 
 /**
  * A template-policy based cache. The behavior of the cache can be altered by
@@ -170,7 +170,7 @@ class Cache : public ReuseCache
     TagStore *tags;
 
     /** Prefetcher */
-    BasePrefetcher *prefetcher;
+    BasePrefetcher2 *prefetcher;
 
     /** Temporary cache block for occasional transitory use */
     BlkType *tempBlock;

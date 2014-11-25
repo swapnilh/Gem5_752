@@ -30,7 +30,7 @@
 
 Import('*')
 
-SimObject('Prefetcher.py')
+SimObject('Prefetcher2.py')
 
 Source('base.cc')
 Source('stride.cc')

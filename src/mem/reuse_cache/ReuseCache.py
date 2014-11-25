@@ -41,7 +41,7 @@
 from m5.params import *
 from m5.proxy import *
 from MemObject import MemObject
-from Prefetcher import BasePrefetcher
+from Prefetcher2 import BasePrefetcher2
 from Tags2 import *
 
 class ReuseCache(MemObject):
@@ -64,7 +64,7 @@ class ReuseCache(MemObject):
     write_buffers = Param.Int(8, "number of write buffers")
     prefetch_on_access = Param.Bool(False,
          "notify the hardware prefetcher on every access (not just misses)")
-    prefetcher = Param.BasePrefetcher(NULL,"Prefetcher attached to cache")
+    prefetcher = Param.BasePrefetcher2(NULL,"Prefetcher attached to cache")
     cpu_side = SlavePort("Port on side closer to CPU")
     mem_side = MasterPort("Port on side closer to MEM")
     addr_ranges = VectorParam.AddrRange([AllMemory], "The address range for the CPU-side port")

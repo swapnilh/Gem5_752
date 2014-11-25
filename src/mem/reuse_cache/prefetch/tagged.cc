@@ -35,13 +35,13 @@
 
 #include "mem/reuse_cache/prefetch/tagged.hh"
 
-TaggedPrefetcher::TaggedPrefetcher(const Params *p)
-    : BasePrefetcher(p)
+TaggedPrefetcher2::TaggedPrefetcher2(const Params *p)
+    : BasePrefetcher2(p)
 {
 }
 
 void
-TaggedPrefetcher::
+TaggedPrefetcher2::
 calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
                   std::list<Cycles> &delays)
 {
@@ -61,8 +61,8 @@ calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
 }
 
 
-TaggedPrefetcher*
-TaggedPrefetcherParams::create()
+TaggedPrefetcher2*
+TaggedPrefetcher2Params::create()
 {
-   return new TaggedPrefetcher(this);
+   return new TaggedPrefetcher2(this);
 }

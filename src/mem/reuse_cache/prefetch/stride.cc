@@ -43,7 +43,7 @@
 
 /**
  * @file
- * Stride Prefetcher template instantiations.
+ * Stride Prefetcher2 template instantiations.
  */
 
 #include "base/trace.hh"
@@ -51,7 +51,7 @@
 #include "mem/reuse_cache/prefetch/stride.hh"
 
 void
-StridePrefetcher::calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
+StridePrefetcher2::calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
                                     std::list<Cycles> &delays)
 {
     if (!pkt->req->hasPC()) {
@@ -171,8 +171,8 @@ StridePrefetcher::calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
 }
 
 
-StridePrefetcher*
-StridePrefetcherParams::create()
+StridePrefetcher2*
+StridePrefetcher2Params::create()
 {
-   return new StridePrefetcher(this);
+   return new StridePrefetcher2(this);
 }

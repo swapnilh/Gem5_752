@@ -54,7 +54,7 @@
 #include "mem/request.hh"
 #include "sim/system.hh"
 
-BasePrefetcher::BasePrefetcher(const Params *p)
+BasePrefetcher2::BasePrefetcher2(const Params *p)
     : ClockedObject(p), size(p->size), cache(nullptr), blkSize(0),
       latency(p->latency), degree(p->degree),
       useMasterId(p->use_master_id), pageStop(!p->cross_pages),
@@ -67,7 +67,7 @@ BasePrefetcher::BasePrefetcher(const Params *p)
 }
 
 void
-BasePrefetcher::setCache(ReuseCache *_cache)
+BasePrefetcher2::setCache(ReuseCache *_cache)
 {
     assert(!cache);
     cache = _cache;
@@ -75,7 +75,7 @@ BasePrefetcher::setCache(ReuseCache *_cache)
 }
 
 void
-BasePrefetcher::regStats()
+BasePrefetcher2::regStats()
 {
     pfIdentified
         .name(name() + ".prefetcher.num_hwpf_identified")
@@ -125,7 +125,7 @@ BasePrefetcher::regStats()
 }
 
 inline bool
-BasePrefetcher::inCache(Addr addr, bool is_secure)
+BasePrefetcher2::inCache(Addr addr, bool is_secure)
 {
     if (cache->inCache(addr, is_secure)) {
         pfCacheHit++;
@@ -135,7 +135,7 @@ BasePrefetcher::inCache(Addr addr, bool is_secure)
 }
 
 inline bool
-BasePrefetcher::inMissQueue(Addr addr, bool is_secure)
+BasePrefetcher2::inMissQueue(Addr addr, bool is_secure)
 {
     if (cache->inMissQueue(addr, is_secure)) {
         pfMSHRHit++;
@@ -145,7 +145,7 @@ BasePrefetcher::inMissQueue(Addr addr, bool is_secure)
 }
 
 PacketPtr
-BasePrefetcher::getPacket()
+BasePrefetcher2::getPacket()
 {
     DPRINTF(HWPrefetch, "Requesting a hw_pf to issue\n");
 
@@ -186,7 +186,7 @@ BasePrefetcher::getPacket()
 
 
 Tick
-BasePrefetcher::notify(PacketPtr &pkt, Tick tick)
+BasePrefetcher2::notify(PacketPtr &pkt, Tick tick)
 {
     // Don't consult the prefetcher if any of the following conditons are true
     // 1) The request is uncacheable
@@ -296,8 +296,8 @@ BasePrefetcher::notify(PacketPtr &pkt, Tick tick)
     return pf.empty() ? 0 : pf.front().tick;
 }
 
-std::list<BasePrefetcher::DeferredPacket>::iterator
-BasePrefetcher::inPrefetch(Addr address, bool is_secure)
+std::list<BasePrefetcher2::DeferredPacket>::iterator
+BasePrefetcher2::inPrefetch(Addr address, bool is_secure)
 {
     // Guaranteed to only be one match, we always check before inserting
     std::list<DeferredPacket>::iterator iter;
@@ -311,7 +311,7 @@ BasePrefetcher::inPrefetch(Addr address, bool is_secure)
 }
 
 bool
-BasePrefetcher::samePage(Addr a, Addr b) const
+BasePrefetcher2::samePage(Addr a, Addr b) const
 {
     return roundDown(a, pageBytes) == roundDown(b, pageBytes);
 }

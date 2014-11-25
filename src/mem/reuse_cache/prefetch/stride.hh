@@ -51,9 +51,9 @@
 #include <climits>
 
 #include "mem/reuse_cache/prefetch/base.hh"
-#include "params/StridePrefetcher.hh"
+#include "params/StridePrefetcher2.hh"
 
-class StridePrefetcher : public BasePrefetcher
+class StridePrefetcher2 : public BasePrefetcher2
 {
   protected:
 
@@ -81,12 +81,12 @@ class StridePrefetcher : public BasePrefetcher
 
   public:
 
-    StridePrefetcher(const Params *p)
-        : BasePrefetcher(p), instTagged(p->inst_tagged)
+    StridePrefetcher2(const Params *p)
+        : BasePrefetcher2(p), instTagged(p->inst_tagged)
     {
     }
 
-    ~StridePrefetcher() {}
+    ~StridePrefetcher2() {}
 
     void calculatePrefetch(PacketPtr &pkt, std::list<Addr> &addresses,
                            std::list<Cycles> &delays);

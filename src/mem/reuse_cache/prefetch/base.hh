@@ -57,7 +57,7 @@
 
 class ReuseCache;
 
-class BasePrefetcher : public ClockedObject
+class BasePrefetcher2 : public ClockedObject
 {
   protected:
 
@@ -135,10 +135,10 @@ class BasePrefetcher : public ClockedObject
     void regStats();
 
   public:
-    typedef BasePrefetcherParams Params;
-    BasePrefetcher(const Params *p);
+    typedef BasePrefetcher2Params Params;
+    BasePrefetcher2(const Params *p);
 
-    virtual ~BasePrefetcher() {}
+    virtual ~BasePrefetcher2() {}
 
     void setCache(ReuseCache *_cache);
 
