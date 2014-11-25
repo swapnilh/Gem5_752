@@ -51,23 +51,23 @@
 #define __MEM_REUSECACHE__TAGS_LRU_HH__
 
 #include "mem/reuse_cache/tags/base_set_assoc.hh"
-#include "params/LRU.hh"
+#include "params/LRU2.hh"
 
-class LRU : public BaseSetAssoc
+class LRU2 : public BaseSetAssoc
 {
   public:
     /** Convenience typedef. */
-    typedef LRUParams Params;
+    typedef LRU2Params Params;
 
     /**
      * Construct and initialize this tag store.
      */
-    LRU(const Params *p);
+    LRU2(const Params *p);
 
     /**
      * Destructor
      */
-    ~LRU() {}
+    ~LRU2() {}
 
     BlkType* accessBlock(Addr addr, bool is_secure, Cycles &lat,
                          int context_src);

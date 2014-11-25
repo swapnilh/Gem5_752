@@ -42,22 +42,22 @@
 
 /**
  * @file
- * Definitions of a LRU tag store.
+ * Definitions of a LRU2 tag store.
  */
 
 #include "debug/CacheRepl.hh"
 #include "mem/reuse_cache/tags/lru.hh"
 #include "mem/reuse_cache/base.hh"
 
-LRU::LRU(const Params *p)
-    : BaseSetAssoc(p)
+LRU2::LRU2(const Params *p)
+    : BaseSetAssoc2(p)
 {
 }
 
-BaseSetAssoc::BlkType*
-LRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int master_id)
+BaseSetAssoc2::BlkType*
+LRU2::accessBlock(Addr addr, bool is_secure, Cycles &lat, int master_id)
 {
-    BlkType *blk = BaseSetAssoc::accessBlock(addr, is_secure, lat, master_id);
+    BlkType *blk = BaseSetAssoc2::accessBlock(addr, is_secure, lat, master_id);
 
     if (blk != NULL) {
         // move this block to head of the MRU list
@@ -70,8 +70,8 @@ LRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int master_id)
     return blk;
 }
 
-BaseSetAssoc::BlkType*
-LRU::findVictim(Addr addr) const
+BaseSetAssoc2::BlkType*
+LRU2::findVictim(Addr addr) const
 {
     int set = extractSet(addr);
     // grab a replacement candidate
@@ -86,26 +86,26 @@ LRU::findVictim(Addr addr) const
 }
 
 void
-LRU::insertBlock(PacketPtr pkt, BlkType *blk)
+LRU2::insertBlock(PacketPtr pkt, BlkType *blk)
 {
-    BaseSetAssoc::insertBlock(pkt, blk);
+    BaseSetAssoc2::insertBlock(pkt, blk);
 
     int set = extractSet(pkt->getAddr());
     sets[set].moveToHead(blk);
 }
 
 void
-LRU::invalidate(BlkType *blk)
+LRU2::invalidate(BlkType *blk)
 {
-    BaseSetAssoc::invalidate(blk);
+    BaseSetAssoc2::invalidate(blk);
 
     // should be evicted before valid blocks
     int set = blk->set;
     sets[set].moveToTail(blk);
 }
 
-LRU*
-LRUParams::create()
+LRU2*
+LRU2Params::create()
 {
-    return new LRU(this);
+    return new LRU2(this);
 }

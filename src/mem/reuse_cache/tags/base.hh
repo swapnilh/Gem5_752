@@ -53,7 +53,7 @@
 
 #include "base/callback.hh"
 #include "base/statistics.hh"
-#include "params/BaseTags.hh"
+#include "params/BaseTags2.hh"
 #include "sim/clocked_object.hh"
 
 class ReuseCache;
@@ -61,7 +61,7 @@ class ReuseCache;
 /**
  * A common base class of Cache tagstore objects.
  */
-class BaseTags : public ClockedObject
+class BaseTags2 : public ClockedObject
 {
   protected:
     /** The block size of the cache. */
@@ -83,7 +83,7 @@ class BaseTags : public ClockedObject
     bool warmedUp;
 
     /** the number of blocks in the cache */
-    unsigned numBlocks;
+
 
     // Statistics
     /**
@@ -140,13 +140,13 @@ class BaseTags : public ClockedObject
      */
 
   public:
-    typedef BaseTagsParams Params;
-    BaseTags(const Params *p);
+    typedef BaseTags2Params Params;
+    BaseTags2(const Params *p);
 
     /**
      * Destructor.
      */
-    virtual ~BaseTags() {}
+    virtual ~BaseTags2() {}
 
     /**
      * Set the parent cache back pointer.
@@ -182,19 +182,19 @@ class BaseTags : public ClockedObject
     virtual std::string print() const = 0;
 };
 
-class BaseTagsCallback : public Callback
+class BaseTags2Callback : public Callback
 {
-    BaseTags *tags;
+    BaseTags2 *tags;
   public:
-    BaseTagsCallback(BaseTags *t) : tags(t) {}
+    BaseTags2Callback(BaseTags2 *t) : tags(t) {}
     virtual void process() { tags->cleanupRefs(); };
 };
 
-class BaseTagsDumpCallback : public Callback
+class BaseTags2DumpCallback : public Callback
 {
-    BaseTags *tags;
+    BaseTags2 *tags;
   public:
-    BaseTagsDumpCallback(BaseTags *t) : tags(t) {}
+    BaseTags2DumpCallback(BaseTags2 *t) : tags(t) {}
     virtual void process() { tags->computeStats(); };
 };
 

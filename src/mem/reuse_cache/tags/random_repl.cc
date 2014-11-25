@@ -38,22 +38,22 @@
 #include "mem/reuse_cache/tags/random_repl.hh"
 #include "mem/reuse_cache/base.hh"
 
-RandomRepl::RandomRepl(const Params *p)
-    : BaseSetAssoc(p)
+RandomRepl2::RandomRepl2(const Params *p)
+    : BaseSetAssoc2(p)
 
 {
 }
 
-BaseSetAssoc::BlkType*
-RandomRepl::accessBlock(Addr addr, bool is_secure, Cycles &lat, int master_id)
+BaseSetAssoc2::BlkType*
+RandomRepl2::accessBlock(Addr addr, bool is_secure, Cycles &lat, int master_id)
 {
-    return BaseSetAssoc::accessBlock(addr, is_secure, lat, master_id);
+    return BaseSetAssoc2::accessBlock(addr, is_secure, lat, master_id);
 }
 
-BaseSetAssoc::BlkType*
-RandomRepl::findVictim(Addr addr) const
+BaseSetAssoc2::BlkType*
+RandomRepl2::findVictim(Addr addr) const
 {
-    BlkType *blk = BaseSetAssoc::findVictim(addr);
+    BlkType *blk = BaseSetAssoc2::findVictim(addr);
 
     // if all blocks are valid, pick a replacement at random
     if (blk->isValid()) {
@@ -71,19 +71,19 @@ RandomRepl::findVictim(Addr addr) const
 }
 
 void
-RandomRepl::insertBlock(PacketPtr pkt, BlkType *blk)
+RandomRepl2::insertBlock(PacketPtr pkt, BlkType *blk)
 {
-    BaseSetAssoc::insertBlock(pkt, blk);
+    BaseSetAssoc2::insertBlock(pkt, blk);
 }
 
 void
-RandomRepl::invalidate(BlkType *blk)
+RandomRepl2::invalidate(BlkType *blk)
 {
-    BaseSetAssoc::invalidate(blk);
+    BaseSetAssoc2::invalidate(blk);
 }
 
-RandomRepl*
-RandomReplParams::create()
+RandomRepl2*
+RandomRepl2Params::create()
 {
-    return new RandomRepl(this);
+    return new RandomRepl2(this);
 }

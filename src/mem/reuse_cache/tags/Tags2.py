@@ -39,8 +39,8 @@ from m5.params import *
 from m5.proxy import *
 from ClockedObject import ClockedObject
 
-class BaseTags(ClockedObject):
-    type = 'BaseTags'
+class BaseTags2(ClockedObject):
+    type = 'BaseTags2'
     abstract = True
     cxx_header = "mem/reuse_cache/tags/base.hh"
     # Get the size from the parent (cache)
@@ -53,25 +53,25 @@ class BaseTags(ClockedObject):
     hit_latency = Param.Cycles(Parent.hit_latency,
                                "The hit latency for this cache")
 
-class BaseSetAssoc(BaseTags):
-    type = 'BaseSetAssoc'
+class BaseSetAssoc2(BaseTags2):
+    type = 'BaseSetAssoc2'
     abstract = True
     cxx_header = "mem/reuse_cache/tags/base_set_assoc.hh"
     assoc = Param.Int(Parent.assoc, "associativity")
     sequential_access = Param.Bool(Parent.sequential_access,
         "Whether to access tags and data sequentially")
 
-class LRU(BaseSetAssoc):
-    type = 'LRU'
-    cxx_class = 'LRU'
+class LRU2(BaseSetAssoc2):
+    type = 'LRU2'
+    cxx_class = 'LRU2'
     cxx_header = "mem/reuse_cache/tags/lru.hh"
 
-class RandomRepl(BaseSetAssoc):
-    type = 'RandomRepl'
-    cxx_class = 'RandomRepl'
+class RandomRepl2(BaseSetAssoc2):
+    type = 'RandomRepl2'
+    cxx_class = 'RandomRepl2'
     cxx_header = "mem/reuse_cache/tags/random_repl.hh"
 
-class FALRU(BaseTags):
-    type = 'FALRU'
-    cxx_class = 'FALRU'
-    cxx_header = "mem/reuse_cache/tags/fa_lru.hh"
+#class FALRU(BaseTags):
+#    type = 'FALRU'
+#    cxx_class = 'FALRU'
+#    cxx_header = "mem/reuse_cache/tags/fa_lru.hh"

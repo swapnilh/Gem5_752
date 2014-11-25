@@ -57,10 +57,10 @@
 #include "mem/reuse_cache/base.hh"
 #include "mem/reuse_cache/blk.hh"
 #include "mem/packet.hh"
-#include "params/BaseSetAssoc.hh"
+#include "params/BaseSetAssoc2.hh"
 
 /**
- * A BaseSetAssoc cache tag store.
+ * A BaseSetAssoc2 cache tag store.
  * @sa  \ref gem5MemorySystem "gem5 Memory System"
  *
  * The BaseSetAssoc tags provide a base, as well as the functionality
@@ -73,7 +73,7 @@
  * void insertBlock();
  * void invalidate();
  */
-class BaseSetAssoc : public BaseTags
+class BaseSetAssoc2 : public BaseTags2
 {
   public:
     /** Typedef the block type used in this tag store. */
@@ -112,17 +112,17 @@ class BaseSetAssoc : public BaseTags
 public:
 
     /** Convenience typedef. */
-     typedef BaseSetAssocParams Params;
+     typedef BaseSetAssoc2Params Params;
 
     /**
      * Construct and initialize this tag store.
      */
-    BaseSetAssoc(const Params *p);
+    BaseSetAssoc2(const Params *p);
 
     /**
      * Destructor
      */
-    virtual ~BaseSetAssoc();
+    virtual ~BaseSetAssoc2();
 
     /**
      * Return the block size.
@@ -135,7 +135,7 @@ public:
     }
 
     /**
-     * Return the subblock size. In the case of BaseSetAssoc it is always
+     * Return the subblock size. In the case of BaseSetAssoc2 it is always
      * the block size.
      * @return The block size.
      */

@@ -30,7 +30,7 @@
 
 Import('*')
 
-SimObject('Tags.py')
+SimObject('Tags2.py')
 
 Source('base.cc')
 Source('base_set_assoc.cc')

@@ -53,8 +53,8 @@
 
 using namespace std;
 
-BaseSetAssoc::BaseSetAssoc(const Params *p)
-    :BaseTags(p), assoc(p->assoc),
+BaseSetAssoc2::BaseSetAssoc2(const Params *p)
+    :BaseTags2(p), assoc(p->assoc),
      numSets(p->size / (p->block_size * p->assoc)),
      sequentialAccess(p->sequential_access)
 {
@@ -115,15 +115,15 @@ BaseSetAssoc::BaseSetAssoc(const Params *p)
     }
 }
 
-BaseSetAssoc::~BaseSetAssoc()
+BaseSetAssoc2::~BaseSetAssoc2()
 {
     delete [] dataBlks;
     delete [] blks;
     delete [] sets;
 }
 
-BaseSetAssoc::BlkType*
-BaseSetAssoc::findBlock(Addr addr, bool is_secure) const
+BaseSetAssoc2::BlkType*
+BaseSetAssoc2::findBlock(Addr addr, bool is_secure) const
 {
     Addr tag = extractTag(addr);
     unsigned set = extractSet(addr);
@@ -132,7 +132,7 @@ BaseSetAssoc::findBlock(Addr addr, bool is_secure) const
 }
 
 void
-BaseSetAssoc::clearLocks()
+BaseSetAssoc2::clearLocks()
 {
     for (int i = 0; i < numBlocks; i++){
         blks[i].clearLoadLocks();
@@ -140,7 +140,7 @@ BaseSetAssoc::clearLocks()
 }
 
 std::string
-BaseSetAssoc::print() const {
+BaseSetAssoc2::print() const {
     std::string cache_state;
     for (unsigned i = 0; i < numSets; ++i) {
         // link in the data blocks
@@ -157,7 +157,7 @@ BaseSetAssoc::print() const {
 }
 
 void
-BaseSetAssoc::cleanupRefs()
+BaseSetAssoc2::cleanupRefs()
 {
     for (unsigned i = 0; i < numSets*assoc; ++i) {
         if (blks[i].isValid()) {
@@ -168,7 +168,7 @@ BaseSetAssoc::cleanupRefs()
 }
 
 void
-BaseSetAssoc::computeStats()
+BaseSetAssoc2::computeStats()
 {
     for (unsigned i = 0; i < ContextSwitchTaskId::NumTaskId; ++i) {
         occupanciesTaskId[i] = 0;

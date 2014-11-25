@@ -53,7 +53,7 @@
 
 using namespace std;
 
-BaseTags::BaseTags(const Params *p)
+BaseTags2::BaseTags2(const Params *p)
     : ClockedObject(p), blkSize(p->block_size), size(p->size),
       hitLatency(p->hit_latency), cache(nullptr), warmupBound(0),
       warmedUp(false), numBlocks(0)
@@ -61,14 +61,14 @@ BaseTags::BaseTags(const Params *p)
 }
 
 void
-BaseTags::setCache(ReuseCache *_cache)
+BaseTags2::setCache(ReuseCache *_cache)
 {
     assert(!cache);
     cache = _cache;
 }
 
 void
-BaseTags::regStats()
+BaseTags2::regStats()
 {
     using namespace Stats;
     replacements
@@ -158,6 +158,6 @@ BaseTags::regStats()
         .desc("Number of data accesses")
         ;
 
-    registerDumpCallback(new BaseTagsDumpCallback(this));
-    registerExitCallback(new BaseTagsCallback(this));
+    registerDumpCallback(new BaseTags2DumpCallback(this));
+    registerExitCallback(new BaseTags2Callback(this));
 }

@@ -40,23 +40,23 @@
 #define __MEM_REUSECACHE__TAGS_RANDOM_REPL_HH__
 
 #include "mem/reuse_cache/tags/base_set_assoc.hh"
-#include "params/RandomRepl.hh"
+#include "params/RandomRepl2.hh"
 
-class RandomRepl : public BaseSetAssoc
+class RandomRepl2 : public BaseSetAssoc2
 {
   public:
     /** Convenience typedef. */
-    typedef RandomReplParams Params;
+    typedef RandomRepl2Params Params;
 
     /**
      * Construct and initiliaze this tag store.
      */
-    RandomRepl(const Params *p);
+    RandomRepl2(const Params *p);
 
     /**
      * Destructor
      */
-    ~RandomRepl() {}
+    ~RandomRepl2() {}
 
     BlkType* accessBlock(Addr addr, bool is_secure, Cycles &lat,
                          int context_src);
