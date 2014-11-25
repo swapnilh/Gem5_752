@@ -36,7 +36,7 @@
  * Cache template instantiations.
  */
 
-#include "mem/reuse_cache/tags/fa_lru.hh"
+//#include "mem/reuse_cache/tags/fa_lru.hh"
 #include "mem/reuse_cache/tags/lru.hh"
 #include "mem/reuse_cache/tags/random_repl.hh"
 #include "mem/reuse_cache/cache_impl.hh"
@@ -44,8 +44,8 @@
 // Template Instantiations
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-template class Cache<FALRU>;
-template class Cache<LRU>;
-template class Cache<RandomRepl>;
+//template class Cache<FALRU>;
+template class Cache<LRU2>;
+template class Cache<RandomRepl2>;
 
 #endif //DOXYGEN_SHOULD_SKIP_THIS

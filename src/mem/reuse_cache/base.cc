@@ -47,7 +47,7 @@
 
 #include "debug/Cache.hh"
 #include "debug/Drain.hh"
-#include "mem/reuse_cache/tags/fa_lru.hh"
+//#include "mem/reuse_cache/tags/fa_lru.hh"
 #include "mem/reuse_cache/tags/lru.hh"
 #include "mem/reuse_cache/tags/random_repl.hh"
 #include "mem/reuse_cache/base.hh"
@@ -785,16 +785,16 @@ ReuseCacheParams::create()
 
     assert(tags);
 
-    if (dynamic_cast<FALRU*>(tags)) {
+/*    if (dynamic_cast<FALRU*>(tags)) {
         if (numSets != 1)
             fatal("Got FALRU tags with more than one set\n");
         return new Cache<FALRU>(this);
-    } else if (dynamic_cast<LRU*>(tags)) {
+    } else*/ if (dynamic_cast<LRU2*>(tags)) {
         if (numSets == 1)
             warn("Consider using FALRU tags for a fully associative cache\n");
-        return new Cache<LRU>(this);
-    } else if (dynamic_cast<RandomRepl*>(tags)) {
-        return new Cache<RandomRepl>(this);
+        return new Cache<LRU2>(this);
+    } else if (dynamic_cast<RandomRepl2*>(tags)) {
+        return new Cache<RandomRepl2>(this);
     } else {
         fatal("No suitable tags selected\n");
     }

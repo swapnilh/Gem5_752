@@ -53,7 +53,7 @@
 #include "mem/reuse_cache/tags/base_set_assoc.hh"
 #include "params/LRU2.hh"
 
-class LRU2 : public BaseSetAssoc
+class LRU2 : public BaseSetAssoc2
 {
   public:
     /** Convenience typedef. */

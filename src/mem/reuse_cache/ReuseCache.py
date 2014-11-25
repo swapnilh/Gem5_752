@@ -42,7 +42,7 @@ from m5.params import *
 from m5.proxy import *
 from MemObject import MemObject
 from Prefetcher import BasePrefetcher
-from Tags import *
+from Tags2 import *
 
 class ReuseCache(MemObject):
     type = 'ReuseCache'
@@ -71,4 +71,4 @@ class ReuseCache(MemObject):
     system = Param.System(Parent.any, "System we belong to")
     sequential_access = Param.Bool(False,
         "Whether to access tags and data sequentially")
-    tags = Param.BaseTags(LRU(), "Tag Store for LRU caches")
+    tags = Param.BaseTags2(LRU2(), "Tag Store for LRU caches")
