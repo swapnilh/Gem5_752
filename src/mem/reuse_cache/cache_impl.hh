@@ -169,16 +169,22 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
     // isWrite() will be true for them
     if (pkt->cmd == MemCmd::SwapReq) {
         cmpAndSwap(blk, pkt);
-    } else if (pkt->isWrite()) {
+    } else if (pkt->isWrite()) { //TODO ADDCODE WRITE AND READ DIFFERENCE
         if (blk->checkWrite(pkt)) {
-            pkt->writeDataToBlock(blk->data->data, blkSize);
+	    //TODO ADDCODE this is the write hit case 
+	      if(blk->isFilled())	
+                 pkt->writeDataToBlock(blk->data->data, blkSize);
+	      else {
+		      //TODO ADDCODE allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+                 pkt->writeDataToBlock(blk->data->data, blkSize);
+	      }
         }
         // Always mark the line as dirty even if we are a failed
         // StoreCond so we supply data to any snoops that have
         // appended themselves to this cache before knowing the store
         // will fail.
         blk->status |= BlkDirty;
-    } else if (pkt->isRead()) {
+    } else if (pkt->isRead() && blk->isFilled()) { //TODO ADDCODE this is read hit with data so proceed normally
         if (pkt->isLLSC()) {
             blk->trackLoadLocked(pkt);
         }
@@ -230,7 +236,11 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
                 pkt->assertShared();
             }
         }
-    } else {
+    } 
+      else if (pkt->isRead() && !blk->isFilled()) {
+	      //TODO ADDCODE read hit but no data so we need to call miss
+      }
+      else {
         // Not a read or write... must be an upgrade.  it's OK
         // to just ack those as long as we have an exclusive
         // copy at this level.
@@ -332,6 +342,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
         assert(blkSize == pkt->getSize());
         if (blk == NULL) {
             // need to do a replacement
+	    // TODO ADDCODE this depicts miss so add a check to see reused
             blk = allocateBlock(pkt->getAddr(), pkt->isSecure(), writebacks);
             if (blk == NULL) {
                 // no replaceable block available, give up.
@@ -340,6 +351,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
                 incMissCount(pkt);
                 return false;
             }
+	    //TODO ADDCODE We need to check if this is first miss or re-use case. Fetch from mem and insert/or not insert in LLC accordingly
             tags->insertBlock(pkt, blk);
 
             blk->status = (BlkValid | BlkReadable);
@@ -359,6 +371,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
             blk->status &= ~BlkWritable;
             ++fastWrites;
         }
+	//TODO ADDCODE BEFORE THIS
         std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
         incHitCount(pkt);
@@ -373,6 +386,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
     } else if ((blk != NULL) &&
                (pkt->needsExclusive() ? blk->isWritable()
                                       : blk->isReadable())) {
+	//TODO ADDCODE if hit we need to see if we have data or not    
         // OK to satisfy access
         incHitCount(pkt);
         satisfyCpuSideRequest(pkt, blk);
@@ -556,8 +570,8 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
         // WriteInvalidates because they always need to propagate
         // throughout the memory system
     }
-
-    if (satisfied) {
+ // TODO ADDCODE BHAIYA
+    if (satisfied && blk->isFilled()) {
         // hit (for all other request types)
 
         if (prefetcher && (prefetchOnAccess || (blk && blk->wasPrefetched()))) {
@@ -580,7 +594,8 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
             /// cache is still relying on it
             pendingDelete.push_back(pkt);
         }
-    } else {
+    }
+       else {
         // miss
 
         // @todo: Make someone pay for this

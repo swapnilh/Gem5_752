@@ -246,6 +246,8 @@ class ReuseCacheBlk
     {
         status = 0;
         isTouched = false;
+	hasData = 0;
+	//TODO ADDCODE does data need to be null
         clearLoadLocks();
 	data->invalidate();
     }
