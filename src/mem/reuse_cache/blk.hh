@@ -54,6 +54,8 @@
 #include "mem/packet.hh"
 #include "mem/request.hh"
 #include "sim/core.hh"          // for Tick
+#include "mem/reuse_cache/data.hh"
+//#include "mem/reuse_cache/data.hh"
 
 /**
  * Cache block status bit assignments
@@ -83,7 +85,6 @@ enum ReuseCacheBlkStatusBits {
  * Contains the tag, status, and a pointer to data.
  */
 
-
 class ReuseCacheBlk
 {
   public:
@@ -101,7 +102,9 @@ class ReuseCacheBlk
      * data stored here should be kept consistant with the actual data
      * referenced by this block.
      */
-    uint8_t *data;
+    //uint8_t *data;
+    DataBlock *data;//RUC
+    int hasData;//RUC
     /** the number of bytes stored in this block. */
     int size;
 
@@ -175,7 +178,7 @@ class ReuseCacheBlk
 
     ReuseCacheBlk()
         : task_id(ContextSwitchTaskId::Unknown),
-          asid(-1), tag(0), data(0) ,size(0), status(0), whenReady(0),
+          asid(-1), tag(0), data(NULL), hasData(0), size(0), status(0), whenReady(0),
           set(-1), isTouched(false), refCount(0),
           srcMasterId(Request::invldMasterId),
           tickInserted(0)
@@ -191,6 +194,7 @@ class ReuseCacheBlk
         asid = rhs.asid;
         tag = rhs.tag;
         data = rhs.data;
+	hasData = rhs.hasData;
         size = rhs.size;
         status = rhs.status;
         whenReady = rhs.whenReady;
@@ -210,6 +214,10 @@ class ReuseCacheBlk
         return (status & needed_bits) == needed_bits;
     }
 
+    bool isFilled() 
+    {
+        return hasData;
+    }
     /**
      * Checks the read permissions of this block.  Note that a block
      * can be valid but not readable if there is an outstanding write
@@ -239,6 +247,7 @@ class ReuseCacheBlk
         status = 0;
         isTouched = false;
         clearLoadLocks();
+	data->invalidate();
     }
 
     /**
@@ -277,6 +286,15 @@ class ReuseCacheBlk
     {
         return (status & BlkSecure) != 0;
     }
+
+    /**
+     * Checks that a block has data or not.
+     * @return True if the block has data.
+     */
+    bool isFilled() const//RUC
+    {
+               return hasData;
+           }
 
     /**
      * Track the fact that a local locked was issued to the block.  If
@@ -344,8 +362,10 @@ class ReuseCacheBlk
           default:    s = 'T'; break; // @TODO add other types
         }
         return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
+                        //"dirty: %d tag: %x", status, s, isValid(),
+                        //isWritable(), isReadable(), isDirty(), tag);
                         "dirty: %d tag: %x", status, s, isValid(),
-                        isWritable(), isReadable(), isDirty(), tag);
+                        isWritable(), isReadable(), isDirty(), tag, isFilled());//RUC
     }
 
     /**
@@ -462,3 +482,4 @@ class ReuseCacheBlkIsDirtyVisitor
 };
 
 #endif //__REUSECACHE__BLK_HH__
+

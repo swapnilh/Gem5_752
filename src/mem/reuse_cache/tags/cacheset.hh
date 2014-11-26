@@ -64,7 +64,9 @@ class CacheSet
 
     /** Cache blocks in this set, maintained in LRU order 0 = MRU. */
     Blktype **blks;
-
+    
+    /** Number of data blocks filled in this set*/
+    int dataCount;	
     /**
      * Find a block matching the tag in this set.
      * @param way_id The id of the way that matches the tag.

@@ -72,3 +72,9 @@ class ReuseCache(MemObject):
     sequential_access = Param.Bool(False,
         "Whether to access tags and data sequentially")
     tags = Param.BaseTags2(LRU2(), "Tag Store for LRU caches")
+
+
+#class DataBlock(DataBlock):
+#    type = 'DataBlock'
+#    cxx_class = 'DataBlock'
+#    cxx_header = 'mem/reuse_cache/data.hh'

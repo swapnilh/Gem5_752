@@ -74,7 +74,7 @@ Cache<TagStore>::Cache(const Params *p)
       prefetchOnAccess(p->prefetch_on_access)
 {
     tempBlock = new BlkType();
-    tempBlock->data = new uint8_t[blkSize];
+//    tempBlock->data->data = new uint8_t[blkSize];
 
     cpuSidePort = new CpuSidePort(p->name + ".cpu_side", this,
                                   "CpuSidePort");
@@ -89,7 +89,7 @@ Cache<TagStore>::Cache(const Params *p)
 template<class TagStore>
 Cache<TagStore>::~Cache()
 {
-    delete [] tempBlock->data;
+    delete [] tempBlock->data->data;
     delete tempBlock;
 
     delete cpuSidePort;
@@ -113,9 +113,11 @@ Cache<TagStore>::cmpAndSwap(BlkType *blk, PacketPtr pkt)
     bool overwrite_mem;
     uint64_t condition_val64;
     uint32_t condition_val32;
+    uint8_t *blk_data = NULL;
 
     int offset = tags->extractBlkOffset(pkt->getAddr());
-    uint8_t *blk_data = blk->data + offset;
+    if(blk->isFilled())
+    	 blk_data = &(blk->data->data[offset]);
 
     assert(sizeof(uint64_t) >= pkt->getSize());
 
@@ -169,7 +171,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         cmpAndSwap(blk, pkt);
     } else if (pkt->isWrite()) {
         if (blk->checkWrite(pkt)) {
-            pkt->writeDataToBlock(blk->data, blkSize);
+            pkt->writeDataToBlock(blk->data->data, blkSize);
         }
         // Always mark the line as dirty even if we are a failed
         // StoreCond so we supply data to any snoops that have
@@ -180,7 +182,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         if (pkt->isLLSC()) {
             blk->trackLoadLocked(pkt);
         }
-        pkt->setDataFromBlock(blk->data, blkSize);
+        pkt->setDataFromBlock(blk->data->data, blkSize);
         if (pkt->getSize() == blkSize) {
             // special handling for coherent block requests from
             // upper-level caches
@@ -357,7 +359,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
             blk->status &= ~BlkWritable;
             ++fastWrites;
         }
-        std::memcpy(blk->data, pkt->getPtr<uint8_t>(), blkSize);
+        std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
         incHitCount(pkt);
         return true;
@@ -994,7 +996,7 @@ Cache<TagStore>::functionalAccess(PacketPtr pkt, bool fromCpuSide)
     // see if we have data at all (owned or otherwise)
     bool have_data = blk && blk->isValid()
         && pkt->checkFunctional(&cbpw, blk_addr, is_secure, blkSize,
-                                blk->data);
+                                blk->data->data);
 
     // data we have is dirty if marked as such or if valid & ownership
     // pending due to outstanding UpgradeReq
@@ -1330,7 +1332,7 @@ Cache<TagStore>::writebackBlk(BlkType *blk)
         writeback->setSupplyExclusive();
     }
     writeback->allocate();
-    std::memcpy(writeback->getPtr<uint8_t>(), blk->data, blkSize);
+    std::memcpy(writeback->getPtr<uint8_t>(), blk->data->data, blkSize);
 
     blk->status &= ~BlkDirty;
     return writeback;
@@ -1374,7 +1376,7 @@ Cache<TagStore>::writebackVisitor(BlkType &blk)
         request.taskId(blk.task_id);
 
         Packet packet(&request, MemCmd::WriteReq);
-        packet.dataStatic(blk.data);
+        packet.dataStatic(blk.data->data);
 
         memSidePort->sendFunctional(&packet);
 
@@ -1535,7 +1537,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 
     // if we got new data, copy it in
     if (pkt->isRead()) {
-        std::memcpy(blk->data, pkt->getPtr<uint8_t>(), blkSize);
+        std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
     }
 
     blk->whenReady = clockEdge() + responseLatency * clockPeriod() +
@@ -1700,10 +1702,10 @@ Cache<TagStore>::handleSnoop(PacketPtr pkt, BlkType *blk,
             pkt->setSupplyExclusive();
         }
         if (is_timing) {
-            doTimingSupplyResponse(pkt, blk->data, is_deferred, pending_inval);
+            doTimingSupplyResponse(pkt, blk->data->data, is_deferred, pending_inval);
         } else {
             pkt->makeAtomicResponse();
-            pkt->setDataFromBlock(blk->data, blkSize);
+            pkt->setDataFromBlock(blk->data->data, blkSize);
         }
     } else if (is_timing && is_deferred) {
         // if it's a deferred timing snoop then we've made a copy of

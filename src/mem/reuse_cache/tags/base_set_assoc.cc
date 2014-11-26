@@ -83,19 +83,21 @@ BaseSetAssoc2::BaseSetAssoc2(const Params *p)
     blks = new BlkType[numSets * assoc];
     // allocate data storage in one big chunk
     numBlocks = numSets * assoc;
-    dataBlks = new uint8_t[numBlocks * blkSize];
+    //dataBlks = new uint8_t[numBlocks * blkSize];
+    dataBlks = new dataType[numBlocks/4];//RUC TODO FIXME
 
     unsigned blkIndex = 0;       // index into blks array
     for (unsigned i = 0; i < numSets; ++i) {
         sets[i].assoc = assoc;
-
+	sets[i].dataCount = 0;
         sets[i].blks = new BlkType*[assoc];
 
         // link in the data blocks
         for (unsigned j = 0; j < assoc; ++j) {
             // locate next cache block
             BlkType *blk = &blks[blkIndex];
-            blk->data = &dataBlks[blkSize*blkIndex];
+//            blk->data = &dataBlks[blkSize*blkIndex];
+            blk->data = NULL;//RUC
             ++blkIndex;
 
             // invalidate new cache block
@@ -105,6 +107,7 @@ BaseSetAssoc2::BaseSetAssoc2(const Params *p)
 
             // Setting the tag to j is just to prevent long chains in the hash
             // table; won't matter because the block is invalid
+	    blk->hasData = 0;
             blk->tag = j;
             blk->whenReady = 0;
             blk->isTouched = false;

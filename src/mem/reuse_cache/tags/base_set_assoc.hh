@@ -56,6 +56,7 @@
 #include "mem/reuse_cache/tags/cacheset.hh"
 #include "mem/reuse_cache/base.hh"
 #include "mem/reuse_cache/blk.hh"
+#include "mem/reuse_cache/data.hh"//RUC
 #include "mem/packet.hh"
 #include "params/BaseSetAssoc2.hh"
 
@@ -78,6 +79,8 @@ class BaseSetAssoc2 : public BaseTags2
   public:
     /** Typedef the block type used in this tag store. */
     typedef ReuseCacheBlk BlkType;
+    /** Typedef the data block type used in this tag store. */
+    typedef DataBlock dataType;//RUC
     /** Typedef for a list of pointers to the local block class. */
     typedef std::list<BlkType*> BlkList;
     /** Typedef the set type used in this tag store. */
@@ -97,8 +100,9 @@ class BaseSetAssoc2 : public BaseTags2
 
     /** The cache blocks. */
     BlkType *blks;
-    /** The data blocks, 1 per cache block. */
-    uint8_t *dataBlks;
+    /** The data blocks, 1/4*tags per set. */
+    //uint8_t *dataBlks;
+    dataType *dataBlks;//RUC
 
     /** The amount to shift the address to get the set. */
     int setShift;
@@ -192,7 +196,8 @@ public:
             dataAccesses += assoc;
         }
 
-        if (blk != NULL) {
+        //if (blk != NULL) {
+	if (blk != NULL && blk->isFilled()) {//RUC
             if (blk->whenReady > curTick()
                 && cache->ticksToCycles(blk->whenReady - curTick())
                 > hitLatency) {
@@ -200,6 +205,11 @@ public:
             }
             blk->refCount += 1;
         }
+
+	else if (blk != NULL && !blk->isFilled()) {//RUC
+	            blk->refCount += 1;
+		    //TODO ADD FETCH DATA CODE HERE
+		}
 
         return blk;
     }
