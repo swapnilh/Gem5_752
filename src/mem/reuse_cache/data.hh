@@ -173,6 +173,10 @@ class DataBlock
     }
 
  
+    bool isValid() const
+    {
+        return data_valid;
+    }
     /**
      * Pretty-print a tag, and interpret state bits to readable form
      * including mapping to a MOESI stat.

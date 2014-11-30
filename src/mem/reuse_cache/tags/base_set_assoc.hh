@@ -58,6 +58,7 @@
 #include "mem/reuse_cache/blk.hh"
 #include "mem/reuse_cache/data.hh"//RUC
 #include "mem/packet.hh"
+#include "base/random.hh"
 #include "params/BaseSetAssoc2.hh"
 
 /**
@@ -246,13 +247,46 @@ public:
 
         return blk;
     }
+/**
+     * Find an invalid data block to evict for the address provided.
+     * If there are no invalid blocks, this will return the block
+     * in the least-recently-used position.
+     * @param addr The addr to a find a replacement candidate for.
+     * @return The candidate block.
+     */
+    DataBlock* findDataVictim(Addr addr) const
+    {
+        DataBlock *datablk = NULL;
+        int set = extractSet(addr);
+        set = set >> 2; //TODO ADDCODE IS THIS CORRECT?
 
+        // prefer to evict an invalid block
+        for (int i = set*assoc; i < set*assoc+assoc; ++i) {
+            datablk = &dataBlks[i];
+            if (!datablk->isValid()) {
+                break;
+            }
+        }
+		
+    // if all blocks are valid, pick a replacement at random
+	if (datablk->isValid()) {
+		// find a random index within the bounds of the set
+		int idx = random_mt.random<int>(0, assoc - 1);
+		assert(idx < assoc);
+		assert(idx >= 0);
+		datablk = &dataBlks[set*assoc+idx];
+		DPRINTF(Cache, "CS752:: Data set %x: selecting blk %x for replacement\n",
+				set, idx);
+    	}
+	return datablk;
+
+    }
     /**
      * Insert the new block into the cache.
      * @param pkt Packet holding the address to update
      * @param blk The block to update.
      */
-     void insertBlock(PacketPtr pkt, BlkType *blk)
+     void insertBlock(PacketPtr pkt, BlkType *blk)  //TODO ADDCODE this is where a block gets overwritten, we need to make sure data is untouched!
      {
          Addr addr = pkt->getAddr();
          MasterID master_id = pkt->req->masterId();

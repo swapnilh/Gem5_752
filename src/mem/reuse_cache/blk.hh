@@ -77,7 +77,8 @@ enum ReuseCacheBlkStatusBits {
     BlkSecure =         0x40,
     /** can the block transition to E? (hasn't been shared with another cache)
       * used to close a timing gap when handling WriteInvalidate packets */
-    BlkCanGoExclusive = 0x80
+    BlkCanGoExclusive = 0x80,
+    BlkTagOnly	      = 0x100
 };
 
 /**
@@ -239,6 +240,10 @@ class ReuseCacheBlk
         return (status & BlkValid) != 0;
     }
 
+    bool isTagOnly() const
+    {
+        return (status & BlkTagOnly) != 0;
+    }
     /**
      * Invalidate the block and clear all state.
      */
@@ -366,8 +371,8 @@ class ReuseCacheBlk
         return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
                         //"dirty: %d tag: %x", status, s, isValid(),
                         //isWritable(), isReadable(), isDirty(), tag);
-                        "dirty: %d tag: %x", status, s, isValid(),
-                        isWritable(), isReadable(), isDirty(), tag, isFilled());//RUC
+                        "dirty: %d tag: %x hasData: %d tagOnly: %d", status, s, isValid(),
+                        isWritable(), isReadable(), isDirty(), tag, isFilled(), isTagOnly());//RUC
     }
 
     /**

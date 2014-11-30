@@ -338,7 +338,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
     // all).  Like writebacks, we write into the cache upon initial
     // receipt of a write-invalidate packets as well.
     if ((pkt->cmd == MemCmd::Writeback) ||
-       ((pkt->cmd == MemCmd::WriteInvalidateReq) && isTopLevel)) {
+       ((pkt->cmd == MemCmd::WriteInvalidateReq) && isTopLevel)) { //TODO ADDCODE this handles miss for writeback too
         assert(blkSize == pkt->getSize());
         if (blk == NULL) {
             // need to do a replacement
@@ -735,7 +735,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                     assert(!blk->isWritable());
                     blk->status &= ~BlkReadable;
                 }
-
+		//TODO ADDCODE this seems to be read/write miss!
                 allocateMissBuffer(pkt, time, true);
             }
 
@@ -1061,7 +1061,7 @@ void
 Cache<TagStore>::recvTimingResp(PacketPtr pkt)
 {
     assert(pkt->isResponse());
-
+    // TODO ADDCODE this is where the response comes in, we need to forward data without storing it..
     Tick time = clockEdge(hitLatency);
     MSHR2 *mshr = dynamic_cast<MSHR2*>(pkt->senderState);
     bool is_error = pkt->isError();
@@ -1472,6 +1472,13 @@ Cache<TagStore>::allocateBlock(Addr addr, bool is_secure,
     return blk;
 }
 
+template<class TagStore>
+typename Cache<TagStore>::DataBlock*
+Cache<TagStore>::allocateDataBlock(Addr addr)
+{
+    DataBlock *datablk = tags->findDataVictim(addr);
+    return datablk;
+}
 
 // Note that the reason we return a list of writebacks rather than
 // inserting them directly in the write buffer is that this function
@@ -1491,6 +1498,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 #endif
 
     if (blk == NULL) {
+	    //TODO ADDCODE Here is a new blk being found to replace existing block, we need to do tag only!
         // better have read new data...
         assert(pkt->hasData());
         // need to do a replacement
@@ -1505,13 +1513,14 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
             // @todo: set security state as well...
             DPRINTF(Cache, "using temp block for %x (%s)\n", addr,
                     is_secure ? "s" : "ns");
-        } else {
+        } else { 
             tags->insertBlock(pkt, blk);
         }
 
         // we should never be overwriting a valid block
         assert(!blk->isValid());
     } else {
+	    //TODO ADDCODE, need to make sure that the upgrade is happening for us!, Upgrade is like Tag-only => Tag+data
         // existing block... probably an upgrade
         assert(blk->tag == tags->extractTag(addr));
         // either we're getting new data or the block should already be valid
@@ -1551,8 +1560,15 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
             addr, is_secure ? "s" : "ns", old_state, blk->print());
 
     // if we got new data, copy it in
-    if (pkt->isRead()) {
+    ////TODO ADDCODE HERE IS WHERE DATA FROM MEMORY IS BEING COPIED INTO THE BLOCK ON CACHE MISS, WE NEED TO DO THIS ONLY FOR REFCOUNT == 1 || ALLOCATE DATA BLOCK HERE
+    if (pkt->isRead() && blk->isTagOnly()) {  
         std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
+	blk->status &= ~BlkTagOnly;
+	DPRINTF(Cache, "CS752:: Block addr %x moving from Tag only to Tag+DATA \n", addr);
+    }
+    else if (pkt->isRead() && !blk->isTagOnly()) {  
+	blk->status |= BlkTagOnly;
+	DPRINTF(Cache, "CS752:: Block addr %x moving to Tag only\n", addr);
     }
 
     blk->whenReady = clockEdge() + responseLatency * clockPeriod() +

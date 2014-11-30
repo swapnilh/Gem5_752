@@ -72,6 +72,7 @@ class Cache : public ReuseCache
   public:
     /** Define the type of cache block to use. */
     typedef typename TagStore::BlkType BlkType;
+    typedef typename TagStore::dataType DataBlock;
     /** A typedef for a list of BlkType pointers. */
     typedef typename TagStore::BlkList BlkList;
 
@@ -221,6 +222,7 @@ class Cache : public ReuseCache
      * no replaceable blocks at the moment.
      */
     BlkType *allocateBlock(Addr addr, bool is_secure, PacketList &writebacks);
+    DataBlock *allocateDataBlock(Addr addr);
 
     /**
      * Populates a cache block and handles all outstanding requests for the
