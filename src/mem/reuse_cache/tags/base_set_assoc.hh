@@ -224,6 +224,7 @@ public:
      * @return Pointer to the cache block if found.
      */
     BlkType* findBlock(Addr addr, bool is_secure) const;
+    int findBlockandreturnWay(Addr addr, bool is_secure) const;
 
     /**
      * Find an invalid block to evict for the address provided.

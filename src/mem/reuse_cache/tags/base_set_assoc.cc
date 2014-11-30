@@ -134,6 +134,20 @@ BaseSetAssoc2::findBlock(Addr addr, bool is_secure) const
     return blk;
 }
 
+int
+BaseSetAssoc2::findBlockandreturnWay(Addr addr, bool is_secure) const
+{
+    int way;	
+    Addr tag = extractTag(addr);
+    unsigned set = extractSet(addr);
+    sets[set].findBlkway(tag, is_secure, way);
+    
+    DPRINTF(Cache, "CS752:: Found tag for address %x in way %d \n", addr, way);
+    return way;
+}
+
+
+
 void
 BaseSetAssoc2::clearLocks()
 {

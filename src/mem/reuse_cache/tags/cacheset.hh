@@ -76,7 +76,7 @@ class CacheSet
      */
     Blktype* findBlk(Addr tag, bool is_secure, int& way_id) const ;
     Blktype* findBlk(Addr tag, bool is_secure) const ;
-
+    void findBlkway(Addr tag, bool is_secure, int& way_id) const ;
     /**
      * Move the given block to the head of the list.
      * @param blk The block to move.
@@ -90,6 +90,25 @@ class CacheSet
     void moveToTail(Blktype *blk);
 
 };
+
+template <class Blktype>
+void
+CacheSet<Blktype>::findBlkway(Addr tag, bool is_secure, int& way_id) const
+{
+    /**
+     * Way_id returns the id of the way that matches the block
+     * If no block is found way_id is set to assoc.
+     */
+    way_id = assoc;
+    for (int i = 0; i < assoc; ++i) {
+        if (blks[i]->tag == tag && blks[i]->isValid() &&
+            blks[i]->isSecure() == is_secure) {
+            way_id = i;
+        }
+    }
+}
+
+
 
 template <class Blktype>
 Blktype*

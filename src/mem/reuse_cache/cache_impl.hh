@@ -1464,7 +1464,7 @@ Cache<TagStore>::allocateBlock(Addr addr, bool is_secure,
 
             if (blk->isDirty()) {
                 // Save writeback packet for handling by caller
-                writebacks.push_back(writebackBlk(blk));
+                writebacks.push_back(writebackBlk(blk)); //TODO ADDCODE1 to see if correct data is picked up using a fwd pointer
             }
         }
     }
@@ -1562,8 +1562,16 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
     // if we got new data, copy it in
     ////TODO ADDCODE HERE IS WHERE DATA FROM MEMORY IS BEING COPIED INTO THE BLOCK ON CACHE MISS, WE NEED TO DO THIS ONLY FOR REFCOUNT == 1 || ALLOCATE DATA BLOCK HERE
     if (pkt->isRead() && blk->isTagOnly()) {  
+	DataBlock *datablk = allocateDataBlock(addr);
+        assert(datablk != NULL);
+	datablk->data_valid = 1;
+	datablk->bp_set = tags->extractSet(addr);
+	datablk->bp_way = tags->findBlockandreturnWay(addr,pkt->isSecure());
+	assert(datablk->bp_way != 8);
+	blk->data = datablk;	    
         std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
 	blk->status &= ~BlkTagOnly;
+	blk->hasData = 1;
 	DPRINTF(Cache, "CS752:: Block addr %x moving from Tag only to Tag+DATA \n", addr);
     }
     else if (pkt->isRead() && !blk->isTagOnly()) {  

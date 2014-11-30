@@ -80,8 +80,10 @@ class DataBlock
     int data_valid;
 //    ReuseCacheBlk * back_ptr;
     int nru_bit;
-
-
+    
+    // Back pointer
+    int bp_set, bp_way;	
+    
     Tick tickInserted;
 
   protected:
@@ -128,7 +130,7 @@ class DataBlock
 
     DataBlock()
         //: data(NULL), size(0), data_valid(0), back_ptr(NULL), nru_bit(0), tickInserted(0)
-        : size(0), data_valid(0), nru_bit(0), tickInserted(0)
+        : size(0), data_valid(0), nru_bit(0), bp_set(0), bp_way(0), tickInserted(0)
     {
 	    int i =0;
 	    while (i < mahBlkSize)
@@ -157,6 +159,8 @@ class DataBlock
         data_valid = rhs.data_valid;
       //  back_ptr = rhs.back_ptr;
         nru_bit = rhs.nru_bit;
+	bp_set = rhs.bp_set;
+	bp_way = rhs.bp_way;
         return *this;
     }
 
@@ -170,6 +174,8 @@ class DataBlock
 //        clearLoadLocks();
 //	back_ptr = NULL;
 	data_valid = 0;
+	bp_set = -1;
+	bp_way = -1;
     }
 
  
