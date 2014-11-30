@@ -368,11 +368,21 @@ class ReuseCacheBlk
           case 0b000: s = 'I'; break;
           default:    s = 'T'; break; // @TODO add other types
         }
-        return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
+	if(isFilled()) {
+        	return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
+                        //"dirty: %d tag: %x", status, s, isValid(),
+                        //isWritable(), isReadable(), isDirty(), tag);
+                        "dirty: %d tag: %x hasData: %d Data=%x tagOnly: %d", status, s, isValid(),
+                        isWritable(), isReadable(), isDirty(), tag, isFilled(), *(data->data), isTagOnly());//RUC
+	}
+	else 	{
+        	return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
                         //"dirty: %d tag: %x", status, s, isValid(),
                         //isWritable(), isReadable(), isDirty(), tag);
                         "dirty: %d tag: %x hasData: %d tagOnly: %d", status, s, isValid(),
                         isWritable(), isReadable(), isDirty(), tag, isFilled(), isTagOnly());//RUC
+
+	}
     }
 
     /**

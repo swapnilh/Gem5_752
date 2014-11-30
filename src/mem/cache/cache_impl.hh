@@ -1044,6 +1044,9 @@ void
 Cache<TagStore>::recvTimingResp(PacketPtr pkt)
 {
     assert(pkt->isResponse());
+    if(!isTopLevel) DPRINTF(Cache, "Cache received packet for address %x (%s), "
+		    "cmd: %s Data=%x\n", pkt->getAddr(), pkt->isSecure() ? "s" : "ns",
+		    pkt->cmdString(), *(pkt->getPtr<uint8_t>()));
 
     Tick time = clockEdge(hitLatency);
     MSHR *mshr = dynamic_cast<MSHR*>(pkt->senderState);
@@ -1536,6 +1539,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
     // if we got new data, copy it in
     if (pkt->isRead()) {
         std::memcpy(blk->data, pkt->getPtr<uint8_t>(), blkSize);
+ 	if(!isTopLevel)	DPRINTF(Cache, "CS752:: Block addr %x forwarding data to L1 || %s\n", addr, blk->print());
     }
 
     blk->whenReady = clockEdge() + responseLatency * clockPeriod() +

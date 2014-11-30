@@ -287,6 +287,10 @@ class Cache : public ReuseCache
     void satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
                                bool deferred_response = false,
                                bool pending_downgrade = false);
+    void satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, BlkType *blk,
+                               bool deferred_response = false,
+                               bool pending_downgrade = false);
+
     bool satisfyMSHR(MSHR2 *mshr, PacketPtr pkt, BlkType *blk);
 
     void doTimingSupplyResponse(PacketPtr req_pkt, uint8_t *blk_data,

@@ -165,6 +165,8 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
     // assert(!pkt->needsExclusive() || blk->isWritable());
     assert(pkt->getOffset(blkSize) + pkt->getSize() <= blkSize);
 
+    DPRINTF(Cache, "CS752: in satisfyCpuSideRequest %s for %s address %x size %d\n", __func__,
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
     // Check RMW operations first since both isRead() and
     // isWrite() will be true for them
     if (pkt->cmd == MemCmd::SwapReq) {
@@ -185,6 +187,8 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         // will fail.
         blk->status |= BlkDirty;
     } else if (pkt->isRead() && blk->isFilled()) { //TODO ADDCODE this is read hit with data so proceed normally
+    	DPRINTF(Cache, "CS752: in satisfyCpuSideRequest - Tag + Data Read Response %s for %s address %x size %d\n", __func__,
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
         if (pkt->isLLSC()) {
             blk->trackLoadLocked(pkt);
         }
@@ -237,19 +241,129 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
             }
         }
     } 
-      else if (pkt->isRead() && !blk->isFilled()) {
-	      //TODO ADDCODE read hit but no data so we need to call miss
-      }
-      else {
-        // Not a read or write... must be an upgrade.  it's OK
-        // to just ack those as long as we have an exclusive
-        // copy at this level.
-        assert(pkt->isUpgrade());
-        assert(blk != tempBlock);
-        tags->invalidate(blk);
-        blk->invalidate();
+    else {
+       // Not a read or write... must be an upgrade.  it's OK
+       // to just ack those as long as we have an exclusive
+       // copy at this level.
+       assert(pkt->isUpgrade());
+       assert(blk != tempBlock);
+       tags->invalidate(blk);
+       blk->invalidate();
     }
 }
+
+template<class TagStore>
+void
+Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, BlkType *blk,
+                                       bool deferred_response,
+                                       bool pending_downgrade)
+{
+    assert(pkt->isRequest());
+
+    assert(blk && blk->isValid());
+    // Occasionally this is not true... if we are a lower-level cache
+    // satisfying a string of Read and ReadEx requests from
+    // upper-level caches, a Read will mark the block as shared but we
+    // can satisfy a following ReadEx anyway since we can rely on the
+    // Read requester(s) to have buffered the ReadEx snoop and to
+    // invalidate their blocks after receiving them.
+    // assert(!pkt->needsExclusive() || blk->isWritable());
+    assert(pkt->getOffset(blkSize) + pkt->getSize() <= blkSize);
+
+    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly %s for %s address %x size %d\n", __func__,
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
+    // Check RMW operations first since both isRead() and
+    // isWrite() will be true for them
+    if (pkt->cmd == MemCmd::SwapReq) {
+	DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and SwapReq SHOULDNT BE HERE\n");
+        cmpAndSwap(blk, pkt);
+    } else if (pkt->isWrite()) { //TODO ADDCODE WRITE AND READ DIFFERENCE
+	DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET->WRITE SHOULDNT BE HERE\n");
+        if (blk->checkWrite(pkt)) {
+	    //TODO ADDCODE this is the write hit case 
+	      if(blk->isFilled())	
+                 pkt->writeDataToBlock(blk->data->data, blkSize);
+	      else {
+		      //TODO ADDCODE allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+                 pkt->writeDataToBlock(blk->data->data, blkSize);
+	      }
+        }
+        // Always mark the line as dirty even if we are a failed
+        // StoreCond so we supply data to any snoops that have
+        // appended themselves to this cache before knowing the store
+        // will fail.
+        blk->status |= BlkDirty;
+    } else if (pkt->isRead()) { 
+    	DPRINTF(Cache, "CS752: in satisfyCpuSideRequest - Tag Only Read Response %s for %s address %x size %d\n", __func__,
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
+        if (pkt->isLLSC()) {
+	    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET-isLLSC SHOULDNT BE HERE for ARM\n");
+            blk->trackLoadLocked(pkt);
+        }
+	DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET-isLLSC SHOULDNT BE HERE for ARM\n");
+        pkt->setData(mempkt->getPtr<uint8_t>());
+        if (pkt->getSize() == blkSize) {
+            // special handling for coherent block requests from
+            // upper-level caches
+            if (pkt->needsExclusive()) {
+		    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and NEEDS EXCLUSIVE SHOULDNT BE HERE \n");
+                // if we have a dirty copy, make sure the recipient
+                // keeps it marked dirty
+                if (blk->isDirty()) {
+                    pkt->assertMemInhibit();
+                }
+                // on ReadExReq we give up our copy unconditionally
+                if (blk != tempBlock)
+                    tags->invalidate(blk);
+                blk->invalidate();
+            } else if (blk->isWritable() && !pending_downgrade
+                      && !pkt->sharedAsserted() && !pkt->req->isInstFetch()) {
+		    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and ISWRITABLE() SHOULDNT BE HERE\n");
+		    // we can give the requester an exclusive copy (by not
+                // asserting shared line) on a read request if:
+                // - we have an exclusive copy at this level (& below)
+                // - we don't have a pending snoop from below
+                //   signaling another read request
+                // - no other cache above has a copy (otherwise it
+                //   would have asseretd shared line on request)
+                // - we are not satisfying an instruction fetch (this
+                //   prevents dirty data in the i-cache)
+
+                if (blk->isDirty()) {
+                    // special considerations if we're owner:
+                    if (!deferred_response && !isTopLevel) {
+                        // if we are responding immediately and can
+                        // signal that we're transferring ownership
+                        // along with exclusivity, do so
+                        pkt->assertMemInhibit();
+                        blk->status &= ~BlkDirty;
+                    } else {
+                        // if we're responding after our own miss,
+                        // there's a window where the recipient didn't
+                        // know it was getting ownership and may not
+                        // have responded to snoops correctly, so we
+                        // can't pass off ownership *or* exclusivity
+                        pkt->assertShared();
+                    }
+                }
+            } else {
+                // otherwise only respond with a shared copy
+                pkt->assertShared();
+            }
+        }
+    } 
+     else {
+       // Not a read or write... must be an upgrade.  it's OK
+       // to just ack those as long as we have an exclusive
+       // copy at this level.
+       assert(pkt->isUpgrade());
+       assert(blk != tempBlock);
+       tags->invalidate(blk);
+       blk->invalidate();
+    }
+}
+
+
 
 
 /////////////////////////////////////////////////////
@@ -371,7 +485,21 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
             blk->status &= ~BlkWritable;
             ++fastWrites;
         }
-	//TODO ADDCODE BEFORE THIS
+	//TODO ADDCODE1 - Done! - In case of Writeback from L1 - If the chosen tag block in L2 does not have data associated - allocate datablock!
+	//pkt->getAddr();
+	if (!blk->isFilled())
+	{
+		DPRINTF(Cache, "CS752:: Writeback for address %x WITHOUT data in tag block\n", pkt->getAddr());
+		DataBlock *datablk = allocateDataBlock(pkt->getAddr());
+		assert(datablk != NULL);
+		datablk->data_valid = 1;
+		datablk->bp_set = tags->extractSet(pkt->getAddr());
+		datablk->bp_way = tags->findBlockandreturnWay(pkt->getAddr(),pkt->isSecure());
+		assert(datablk->bp_way != 8);
+		blk->data = datablk;
+	}
+	DPRINTF(Cache, "CS752:: Writeback for address %x WITH data in tag block\n", pkt->getAddr());
+
         std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
         incHitCount(pkt);
@@ -385,7 +513,8 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
         return true;
     } else if ((blk != NULL) &&
                (pkt->needsExclusive() ? blk->isWritable()
-                                      : blk->isReadable())) {
+                                      : blk->isReadable()) && blk->isFilled()) {
+	DPRINTF(Cache, "CS752:: Hit for addr %x WITH tag + data with blk %s\n", pkt->getAddr(), blk->print());
 	//TODO ADDCODE if hit we need to see if we have data or not    
         // OK to satisfy access
         incHitCount(pkt);
@@ -571,7 +700,8 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
         // throughout the memory system
     }
  // TODO ADDCODE BHAIYA
-    if (satisfied && blk->isFilled()) {
+ //   if (satisfied && blk->isFilled()) { //POSSIBLE CHECK HERE
+    if (satisfied) {
         // hit (for all other request types)
 
         if (prefetcher && (prefetchOnAccess || (blk && blk->wasPrefetched()))) {
@@ -715,7 +845,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                 if (pkt->cmd == MemCmd::WriteInvalidateReq) {
                     // a WriteInvalidate is not a normal write miss;
                     // the assertions below are not applicable.
-                } else if (blk && blk->isValid()) {
+                } else if (blk && blk->isValid() && blk->isFilled() && pkt->isWrite()) { //TODO ADDCODE1 maybe we need to add something for !isFilled
                     // If we have a write miss to a valid block, we
                     // need to mark the block non-readable.  Otherwise
                     // if we allow reads while there's an outstanding
@@ -796,7 +926,7 @@ Cache<TagStore>::getBusPacket(PacketPtr cpu_pkt, BlkType *blk,
     // write miss on a shared owned block will generate a ReadExcl,
     // which will clobber the owned copy.
     const bool useUpgrades = true;
-    if (blkValid && useUpgrades) {
+    if (blkValid && useUpgrades && blk->isFilled()) {
         // only reason to be here is that blk is shared
         // (read-only) and we need exclusive
         assert(needsExclusive);
@@ -809,7 +939,10 @@ Cache<TagStore>::getBusPacket(PacketPtr cpu_pkt, BlkType *blk,
         // where the determination the StoreCond fails is delayed due to
         // all caches not being on the same local bus.
         cmd = MemCmd::SCUpgradeFailReq;
-    } else {
+    } else if(blkValid && !blk->isFilled() && cpu_pkt->isWrite()) {
+        cmd = needsExclusive ? MemCmd::ReadExReq : MemCmd::ReadReq;
+    }
+    else {
         // block is invalid
         cmd = needsExclusive ? MemCmd::ReadExReq : MemCmd::ReadReq;
     }
@@ -983,6 +1116,7 @@ template<class TagStore>
 void
 Cache<TagStore>::functionalAccess(PacketPtr pkt, bool fromCpuSide)
 {
+    DPRINTF(Cache, "CS752:: ****************** ERROR!!!!!! cache_impl.hh functionalAccess function called! Should NOT have be! ************************\n");
     if (system->bypassCaches()) {
         // Packets from the memory side are snoop request and
         // shouldn't happen in bypass mode.
@@ -1061,6 +1195,10 @@ void
 Cache<TagStore>::recvTimingResp(PacketPtr pkt)
 {
     assert(pkt->isResponse());
+    DPRINTF(Cache, "Cache received packet for address %x (%s), "
+                "cmd: %s Data=%x\n", pkt->getAddr(), pkt->isSecure() ? "s" : "ns",
+                pkt->cmdString(), *(pkt->getPtr<uint8_t>()));
+
     // TODO ADDCODE this is where the response comes in, we need to forward data without storing it..
     Tick time = clockEdge(hitLatency);
     MSHR2 *mshr = dynamic_cast<MSHR2*>(pkt->senderState);
@@ -1119,7 +1257,10 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
         blk = handleFill(pkt, blk, writebacks);
         assert(blk != NULL);
     }
-
+    //TODO ADDCODE, removing is_fill if first hit, and tag only case
+//    if(!blk->isFilled()) {
+//	    is_fill = 0;
+//    }
     // First offset for critical word first calculations
     int initial_offset = 0;
 
@@ -1154,10 +1295,17 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
                             "data for %s of %x is obsolete\n",
                             __func__, target->pkt->cmdString(),
                             target->pkt->getAddr());
-                } else {
+                } else if(blk->isFilled()){
+		    DPRINTF(Cache, "Block for addr %x is Tag + Data\n", pkt->getAddr());
                     satisfyCpuSideRequest(target->pkt, blk,
                                           true, mshr->hasPostDowngrade());
                 }
+		else if(!blk->isFilled()){
+		    DPRINTF(Cache, "Block for addr %x is Tag Only\n", pkt->getAddr());
+                    satisfyCpuSideRequestTagOnly(target->pkt, pkt, blk,
+                                          true, mshr->hasPostDowngrade());
+
+		}
                 // How many bytes past the first request is this one
                 int transfer_offset =
                     target->pkt->getOffset(blkSize) - initial_offset;
@@ -1225,10 +1373,11 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
                 // not a cache fill, just forwarding response
                 // responseLatency is the latency of the return path
                 // from lower level cahces/memory to the core.
+		DPRINTF(Cache, "Block for addr %x is Tag Only, so forwarding from here\n", pkt->getAddr());
                 completion_time = clockEdge(responseLatency) +
                     pkt->lastWordDelay;
                 if (pkt->isRead() && !is_error) {
-                    target->pkt->setData(pkt->getPtr<uint8_t>());
+                    target->pkt->setData(pkt->getPtr<uint8_t>()); //TODO ADDCODE HERE
                 }
             }
             target->pkt->makeTimingResponse();
@@ -1572,11 +1721,11 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
         std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
 	blk->status &= ~BlkTagOnly;
 	blk->hasData = 1;
-	DPRINTF(Cache, "CS752:: Block addr %x moving from Tag only to Tag+DATA \n", addr);
+	DPRINTF(Cache, "CS752:: Block addr %x moving from Tag only to Tag+DATA || %s \n", addr, blk->print());
     }
     else if (pkt->isRead() && !blk->isTagOnly()) {  
 	blk->status |= BlkTagOnly;
-	DPRINTF(Cache, "CS752:: Block addr %x moving to Tag only\n", addr);
+	DPRINTF(Cache, "CS752:: Block addr %x moving to Tag only || %s\n", addr, blk->print());
     }
 
     blk->whenReady = clockEdge() + responseLatency * clockPeriod() +
@@ -1740,7 +1889,8 @@ Cache<TagStore>::handleSnoop(PacketPtr pkt, BlkType *blk,
         if (have_exclusive) {
             pkt->setSupplyExclusive();
         }
-        if (is_timing) {
+        if (is_timing) { // TODO ADDCODE1 we should not respond with data we dont have so we should nt come ehre in the first place
+	    assert(blk->data != NULL);	
             doTimingSupplyResponse(pkt, blk->data->data, is_deferred, pending_inval);
         } else {
             pkt->makeAtomicResponse();
