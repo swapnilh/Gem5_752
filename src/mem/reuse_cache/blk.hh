@@ -251,10 +251,23 @@ class ReuseCacheBlk
     {
         status = 0;
         isTouched = false;
+	if(isFilled())	data->invalidate();
 	hasData = 0;
 	//TODO ADDCODE does data need to be null
+	data = NULL;
         clearLoadLocks();
-	if(isFilled())	data->invalidate();
+    }
+  /**
+     * Invalidate the fwd pointer and return to Tag Only
+     */
+    void invalidateData()
+    {
+        status |= BlkTagOnly;
+	data->invalidate();
+	data = NULL;
+	hasData = 0;
+	//TODO ADDCODE does the below need to be there?
+        clearLoadLocks();
     }
 
     /**

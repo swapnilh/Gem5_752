@@ -83,7 +83,8 @@ class DataBlock
     
     // Back pointer
     int bp_set, bp_way;	
-    
+    Addr tag;
+    int secure; // Needed for findBlock as back pointer
     Tick tickInserted;
 
   protected:
@@ -130,7 +131,7 @@ class DataBlock
 
     DataBlock()
         //: data(NULL), size(0), data_valid(0), back_ptr(NULL), nru_bit(0), tickInserted(0)
-        : size(0), data_valid(0), nru_bit(0), bp_set(0), bp_way(0), tickInserted(0)
+        : size(0), data_valid(0), nru_bit(0), bp_set(0), bp_way(0), tag(0), secure(0), tickInserted(0)
     {
 	    int i =0;
 	    while (i < mahBlkSize)
@@ -161,6 +162,8 @@ class DataBlock
         nru_bit = rhs.nru_bit;
 	bp_set = rhs.bp_set;
 	bp_way = rhs.bp_way;
+	tag = rhs.tag;
+	secure = rhs.secure;
         return *this;
     }
 
@@ -174,6 +177,7 @@ class DataBlock
 //        clearLoadLocks();
 //	back_ptr = NULL;
 	data_valid = 0;
+	tag = 0;
 	bp_set = -1;
 	bp_way = -1;
     }
@@ -213,11 +217,8 @@ class DataBlock
           case 0b001: s = 'S'; break;
           case 0b000: s = 'I'; break;
           default:    s = 'T'; break; // @TODO add other types
-        }
-        return csprintf("state: %x (%c) valid: %d writable: %d readable: %d "
-                        "dirty: %d tag: %x", status, s, isValid(),
-                        isWritable(), isReadable(), isDirty(), tag);*/ //FIXME
-	return csprintf("No return --- FIXME");
+        }*/
+        return csprintf("valid: %d secure: %d data (1st 4): %x %x %x %x size: %d tag: %x", isValid(), secure , data[0], data[1], data[2], data[3], size, tag);
     }
 
  };

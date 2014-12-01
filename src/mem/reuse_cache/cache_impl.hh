@@ -177,7 +177,8 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
 	      if(blk->isFilled())	
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      else {
-		 //TODO ADDCODE1 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+		 //TODO ADDCODE123 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+		 DPRINTF(Cache, "CS752:: IN satisfyCpuSideRequest with tag only for address %x SHOULD NOT BE HERE\n", pkt->getAddr());	 
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      }
         }
@@ -287,13 +288,23 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 		      //TODO ADDCODE123 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
 		DPRINTF(Cache, "CS752:: Write HIT for address %x WITHOUT data in tag block\n", pkt->getAddr());
 		DataBlock *datablk = allocateDataBlock(pkt->getAddr());
+		if(datablk->data_valid) {
+			BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+//			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
+			backptr->invalidateData();
+			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+		}
 		assert(datablk != NULL);
 		datablk->data_valid = 1;
 		datablk->bp_set = tags->extractSet(pkt->getAddr());
 		datablk->bp_way = tags->findBlockandreturnWay(pkt->getAddr(),pkt->isSecure());
 		assert(datablk->bp_way != 8);
   		blk->data = datablk;
+		blk->hasData = 1;
+		blk->status &= ~BlkTagOnly;
                 pkt->writeDataToBlock(blk->data->data, blkSize);
+		DPRINTF(Cache, "CS752:: Block upgraded! <FIGURE OUT CASE> :: %s tagblock: %s \n", blk->data->print(), blk->print());
 	      }
         }
         // Always mark the line as dirty even if we are a failed
@@ -499,12 +510,22 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
 	{
 		DPRINTF(Cache, "CS752:: Writeback for address %x WITHOUT data in tag block\n", pkt->getAddr());
 		DataBlock *datablk = allocateDataBlock(pkt->getAddr());
+		//TODO ADDCODE1234, need to invalidate earlier pointer!
 		assert(datablk != NULL);
+		if(datablk->data_valid) {
+			BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+//			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
+			backptr->invalidateData();
+			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+		}
 		datablk->data_valid = 1;
 		datablk->bp_set = tags->extractSet(pkt->getAddr());
 		datablk->bp_way = tags->findBlockandreturnWay(pkt->getAddr(),pkt->isSecure());
 		assert(datablk->bp_way != 8);
 		blk->data = datablk;
+		blk->hasData = 1;
+		blk->status &= ~BlkTagOnly;
 	}
 	DPRINTF(Cache, "CS752:: Writeback for address %x WITH data in tag block\n", pkt->getAddr());
 
@@ -745,6 +766,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
             // a WriteInvalidate is pending.  Instead of going the MSHR route,
             // the Packet should be replayed, since if the block transitions
             // to Exclusive the write can complete immediately.
+	    DPRINTF(Cache, "CS752:: Blocking_PendingWriteInvalidate %x \n",pkt->getAddr());
             setBlocked(Blocked_PendingWriteInvalidate);
             return false;
         }
@@ -811,6 +833,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
             //@todo remove hw_pf here
 
             // Coalesce unless it was a software prefetch (see above).
+	    DPRINTF(Cache, "CS752:: MSHR hit for addr %x \n",pkt->getAddr());
             if (pkt) {
                 assert(pkt->req->masterId() < system->maxMasters());
                 mshr_hits[pkt->cmdToIndex()][pkt->req->masterId()]++;
@@ -853,7 +876,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                 if (pkt->cmd == MemCmd::WriteInvalidateReq) {
                     // a WriteInvalidate is not a normal write miss;
                     // the assertions below are not applicable.
-                } else if (blk && blk->isValid() && blk->isFilled() && pkt->isWrite()) { //TODO ADDCODE1 maybe we need to add something for !isFilled
+                } else if (blk && blk->isValid() && pkt->isWrite()) { //TODO ADDCODE1234 maybe we need to add something for !isFilled
                     // If we have a write miss to a valid block, we
                     // need to mark the block non-readable.  Otherwise
                     // if we allow reads while there's an outstanding
@@ -869,6 +892,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                     // internally, and have a sufficiently weak memory
                     // model, this is probably unnecessary, but at some
                     // point it must have seemed like we needed it...
+		    DPRINTF(Cache, "CS752:: Treating as Write miss to valid block for addr %x \n",pkt->getAddr());
                     assert(pkt->needsExclusive());
                     assert(!blk->isWritable());
                     blk->status &= ~BlkReadable;
@@ -1720,6 +1744,13 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
     ////TODO ADDCODE HERE IS WHERE DATA FROM MEMORY IS BEING COPIED INTO THE BLOCK ON CACHE MISS, WE NEED TO DO THIS ONLY FOR REFCOUNT == 1 || ALLOCATE DATA BLOCK HERE
     if (pkt->isRead() && blk->isTagOnly()) {  
 	DataBlock *datablk = allocateDataBlock(addr);
+	if(datablk->data_valid) {
+		BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+//			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
+		backptr->invalidateData();
+		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+	}
         assert(datablk != NULL);
 	datablk->data_valid = 1;
 	datablk->bp_set = tags->extractSet(addr);

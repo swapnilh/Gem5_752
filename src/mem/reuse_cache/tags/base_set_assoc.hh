@@ -224,6 +224,8 @@ public:
      * @return Pointer to the cache block if found.
      */
     BlkType* findBlock(Addr addr, bool is_secure) const;
+    BlkType* findBlock(int way, int set) const;
+//    BlkType* findBlockfromTag(Addr tag, int set, bool is_secure) const;
     int findBlockandreturnWay(Addr addr, bool is_secure) const;
 
     /**
