@@ -237,12 +237,14 @@ public:
     {
         BlkType *blk = NULL;
         int set = extractSet(addr);
+	DPRINTF(Cache, "CS752:: Found victim called for assoc %d \n",  assoc);
 
         // prefer to evict an invalid block
         for (int i = 0; i < assoc; ++i) {
             blk = sets[set].blks[i];
             if (!blk->isValid()) {
-                break;
+		    DPRINTF(Cache, "CS752:: Found victim in way i=%d for assoc %d \n", i, assoc);
+		    break;
             }
         }
 
@@ -265,6 +267,7 @@ public:
         for (int i = set*assoc; i < set*assoc+assoc; ++i) {
             datablk = &dataBlks[i];
             if (!datablk->isValid()) {
+		DPRINTF(Cache, "CS752:: Data set assoc=%x: selecting blk %x for replacement\n", assoc, i);
                 break;
             }
         }

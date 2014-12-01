@@ -63,8 +63,8 @@ RandomRepl2::findVictim(Addr addr) const
         assert(idx >= 0);
         blk = sets[extractSet(addr)].blks[idx];
 
-        DPRINTF(CacheRepl, "set %x: selecting blk %x for replacement\n",
-                blk->set, regenerateBlkAddr(blk->tag, blk->set));
+        DPRINTF(CacheRepl, "CS752:: set %x: selecting blk %x in way %d with assoc %d for replacement\n",
+                blk->set, idx, assoc, regenerateBlkAddr(blk->tag, blk->set));
     }
 
     return blk;

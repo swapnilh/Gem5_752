@@ -177,7 +177,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
 	      if(blk->isFilled())	
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      else {
-		      //TODO ADDCODE allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+		 //TODO ADDCODE1 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      }
         }
@@ -284,8 +284,16 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 	      if(blk->isFilled())	
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      else {
-		      //TODO ADDCODE allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
-                 pkt->writeDataToBlock(blk->data->data, blkSize);
+		      //TODO ADDCODE123 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
+		DPRINTF(Cache, "CS752:: Write HIT for address %x WITHOUT data in tag block\n", pkt->getAddr());
+		DataBlock *datablk = allocateDataBlock(pkt->getAddr());
+		assert(datablk != NULL);
+		datablk->data_valid = 1;
+		datablk->bp_set = tags->extractSet(pkt->getAddr());
+		datablk->bp_way = tags->findBlockandreturnWay(pkt->getAddr(),pkt->isSecure());
+		assert(datablk->bp_way != 8);
+  		blk->data = datablk;
+                pkt->writeDataToBlock(blk->data->data, blkSize);
 	      }
         }
         // Always mark the line as dirty even if we are a failed

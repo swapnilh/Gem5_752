@@ -123,6 +123,7 @@ CacheSet<Blktype>::findBlk(Addr tag, bool is_secure, int& way_id) const
         if (blks[i]->tag == tag && blks[i]->isValid() &&
             blks[i]->isSecure() == is_secure) {
             way_id = i;
+	    DPRINTF(Cache, "CS752:: Found tag for tag %x in way %d \n", tag, i);
             return blks[i];
         }
     }

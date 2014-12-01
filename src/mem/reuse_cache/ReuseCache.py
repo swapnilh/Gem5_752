@@ -71,7 +71,7 @@ class ReuseCache(MemObject):
     system = Param.System(Parent.any, "System we belong to")
     sequential_access = Param.Bool(False,
         "Whether to access tags and data sequentially")
-    tags = Param.BaseTags2(LRU2(), "Tag Store for LRU caches")
+    tags = Param.BaseTags2(RandomRepl2(), "Tag Store for LRU caches")
 
 
 #class DataBlock(DataBlock):
