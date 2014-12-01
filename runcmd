@@ -1,7 +1,7 @@
 #!/bin/bash
-file=cache_exec;
+file=test1;
 test=mb;
-#./build/ARM/gem5.opt --outdir=stats_unchanged${file} --debug-flags=Cache,Exec,-ExecTicks --debug-file=unchanged.out ./configs/example/se_base.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log2
- ./build/ARM/gem5.opt --outdir=stats_changed${file} --debug-flags=Cache --debug-file=changed.out ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log
+./build/ARM/gem5.opt --outdir=stats_unchanged${file} --debug-flags=Cache --debug-file=unchanged.out ./configs/example/se_base.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=64kB -I 10000000000 --cpu-type=detailed |& tee log2
+ ./build/ARM/gem5.opt --outdir=stats_changed${file} --debug-flags=Cache --debug-file=changed.out ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=64kB -I 10000000000 --cpu-type=detailed |& tee log
 #gvimdiff stats_unchanged${file}/stats.txt stats_changed${file}/stats.txt 
 # ./build/ARM/gem5.opt --outdir=stats_changed${file} --debug-file=changed.out ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log

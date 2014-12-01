@@ -135,7 +135,7 @@ BaseSetAssoc2::findBlock(Addr addr, bool is_secure) const
 }
 
 BaseSetAssoc2::BlkType*
-BaseSetAssoc2::findBlock(int way,int set) const
+BaseSetAssoc2::findBlockfromTag(int way,int set) const
 {
     BlkType *blk = sets[set].blks[way];
     return blk;

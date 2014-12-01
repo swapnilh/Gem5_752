@@ -289,7 +289,7 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 		DPRINTF(Cache, "CS752:: Write HIT for address %x WITHOUT data in tag block\n", pkt->getAddr());
 		DataBlock *datablk = allocateDataBlock(pkt->getAddr());
 		if(datablk->data_valid) {
-			BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+			BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
 			backptr->invalidateData();
@@ -513,7 +513,7 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
 		//TODO ADDCODE1234, need to invalidate earlier pointer!
 		assert(datablk != NULL);
 		if(datablk->data_valid) {
-			BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+			BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
 			backptr->invalidateData();
@@ -1695,7 +1695,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
             DPRINTF(Cache, "using temp block for %x (%s)\n", addr,
                     is_secure ? "s" : "ns");
         } else { 
-            tags->insertBlock(pkt, blk);
+            tags->insertBlock(pkt, blk); //TODO ADDCODE1234 should we set tag only flag here?
         }
 
         // we should never be overwriting a valid block
@@ -1745,7 +1745,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
     if (pkt->isRead() && blk->isTagOnly()) {  
 	DataBlock *datablk = allocateDataBlock(addr);
 	if(datablk->data_valid) {
-		BlkType *backptr = tags->findBlock(datablk->bp_way, datablk->bp_set);
+		BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
 		backptr->invalidateData();

@@ -131,7 +131,7 @@ class DataBlock
 
     DataBlock()
         //: data(NULL), size(0), data_valid(0), back_ptr(NULL), nru_bit(0), tickInserted(0)
-        : size(0), data_valid(0), nru_bit(0), bp_set(0), bp_way(0), tag(0), secure(0), tickInserted(0)
+        : size(64), data_valid(0), nru_bit(0), bp_set(0), bp_way(0), tag(0), secure(0), tickInserted(0)
     {
 	    int i =0;
 	    while (i < mahBlkSize)
