@@ -178,7 +178,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      else {
 		 //TODO ADDCODE123 allocatedatablock function to be called, which will make the front pointer valid, and then we call writedatatoblock..
-		 DPRINTF(Cache, "CS752:: IN satisfyCpuSideRequest with tag only for address %x SHOULD NOT BE HERE\n", pkt->getAddr());	 
+		 DPRINTF(Cache, "CS752:: IN satisfyCpuSideRequest with tag only for WRITEREQ address %x SHOULD NOT BE HERE\n", pkt->getAddr());	 
                  pkt->writeDataToBlock(blk->data->data, blkSize);
 	      }
         }
@@ -241,7 +241,10 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
                 pkt->assertShared();
             }
         }
-    } 
+    }
+    else if (pkt->isRead() && !blk->isFilled()) { //TODO ADDCODE this is read hit with data so proceed normally
+	    DPRINTF(Cache, "CS752:: IN satisfyCpuSideRequest with tag only for READREQ address %x SHOULD NOT BE HERE\n", pkt->getAddr());	 
+    }
     else {
        // Not a read or write... must be an upgrade.  it's OK
        // to just ack those as long as we have an exclusive
@@ -292,7 +295,12 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 			BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
-			backptr->invalidateData();
+			if(backptr->isDirty()) {
+				PacketPtr wbPkt = writebackBlk(backptr);
+			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
+			}
+//			backptr->invalidateData();
+			backptr->invalidate();
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 		}
 		assert(datablk != NULL);
@@ -319,7 +327,6 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 	    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET-isLLSC SHOULDNT BE HERE for ARM\n");
             blk->trackLoadLocked(pkt);
         }
-	DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET-isLLSC SHOULDNT BE HERE for ARM\n");
         pkt->setData(mempkt->getPtr<uint8_t>());
         if (pkt->getSize() == blkSize) {
             // special handling for coherent block requests from
@@ -516,7 +523,12 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
 			BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
-			backptr->invalidateData();
+			if(backptr->isDirty()) {
+				PacketPtr wbPkt = writebackBlk(backptr);
+			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
+			}
+//			backptr->invalidateData();
+			backptr->invalidate();
 			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 		}
 		datablk->data_valid = 1;
@@ -729,7 +741,6 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
         // throughout the memory system
     }
  // TODO ADDCODE BHAIYA
- //   if (satisfied && blk->isFilled()) { //POSSIBLE CHECK HERE
     if (satisfied) {
         // hit (for all other request types)
 
@@ -876,7 +887,7 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                 if (pkt->cmd == MemCmd::WriteInvalidateReq) {
                     // a WriteInvalidate is not a normal write miss;
                     // the assertions below are not applicable.
-                } else if (blk && blk->isValid() && pkt->isWrite()) { //TODO ADDCODE1234 maybe we need to add something for !isFilled
+                } else if (blk && blk->isValid() && pkt->isWrite() && !blk->isFilled()) { //TODO ADDCODE1234 maybe we need to add something for !isFilled
                     // If we have a write miss to a valid block, we
                     // need to mark the block non-readable.  Otherwise
                     // if we allow reads while there's an outstanding
@@ -1744,11 +1755,17 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
     ////TODO ADDCODE HERE IS WHERE DATA FROM MEMORY IS BEING COPIED INTO THE BLOCK ON CACHE MISS, WE NEED TO DO THIS ONLY FOR REFCOUNT == 1 || ALLOCATE DATA BLOCK HERE
     if (pkt->isRead() && blk->isTagOnly()) {  
 	DataBlock *datablk = allocateDataBlock(addr);
+	DPRINTF(Cache, "CS752:: READ! Allocated Data block, as the data is valid for datablock :: %s \n",datablk->print());	
 	if(datablk->data_valid) {
 		BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
 		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
-		backptr->invalidateData();
+		if(backptr->isDirty()) {
+				PacketPtr wbPkt = writebackBlk(backptr);
+			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
+		}
+//		backptr->invalidateData();
+		backptr->invalidate();
 		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 	}
         assert(datablk != NULL);
@@ -1762,7 +1779,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 	blk->hasData = 1;
 	DPRINTF(Cache, "CS752:: Block addr %x moving from Tag only to Tag+DATA || %s \n", addr, blk->print());
     }
-    else if (pkt->isRead() && !blk->isTagOnly()) {  
+    else if (pkt->isRead() && !blk->isFilled() && !blk->isTagOnly()) {  
 	blk->status |= BlkTagOnly;
 	DPRINTF(Cache, "CS752:: Block addr %x moving to Tag only || %s\n", addr, blk->print());
     }
