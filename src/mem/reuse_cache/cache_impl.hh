@@ -1275,6 +1275,7 @@ Cache<TagStore>::recvTimingResp(PacketPtr pkt)
     PacketList writebacks;
 
     if (pkt->req->isUncacheable()) {
+        DPRINTF(Cache, "%s: Uncacheable!;%s of %x\n", __func__, pkt->cmdString(), pkt->getAddr());
         assert(pkt->req->masterId() < system->maxMasters());
         mshr_uncacheable_lat[stats_cmd_idx][pkt->req->masterId()] +=
             miss_latency;
@@ -1643,8 +1644,10 @@ Cache<TagStore>::allocateBlock(Addr addr, bool is_secure,
             // must be an outstanding upgrade request (common case)
             // or WriteInvalidate pending writeback (very uncommon case)
             // on a block we're about to replace...
-            assert(!blk->isWritable() || blk->isDirty());
-            assert(repl_mshr->needsExclusive());
+	    if(blk->isFilled()) {	
+		    assert(!blk->isWritable() || blk->isDirty());
+		    assert(repl_mshr->needsExclusive());
+	    }
             // too hard to replace block with transient state
             // allocation failed, block not inserted
             return NULL;
@@ -1753,7 +1756,10 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 
     // if we got new data, copy it in
     ////TODO ADDCODE HERE IS WHERE DATA FROM MEMORY IS BEING COPIED INTO THE BLOCK ON CACHE MISS, WE NEED TO DO THIS ONLY FOR REFCOUNT == 1 || ALLOCATE DATA BLOCK HERE
-    if (pkt->isRead() && blk->isTagOnly()) {  
+    if ((pkt->isRead() && blk->isTagOnly()) || pkt->req->isUncacheable()) {  
+	if(pkt->req->isUncacheable()) {
+		DPRINTF(Cache, "CS752:: Uncacheable for pkt->addr=%x!\n",addr);
+	}
 	DataBlock *datablk = allocateDataBlock(addr);
 	DPRINTF(Cache, "CS752:: READ! Allocated Data block, as the data is valid for datablock :: %s \n",datablk->print());	
 	if(datablk->data_valid) {

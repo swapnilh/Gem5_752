@@ -135,6 +135,10 @@ class BaseTags2 : public ClockedObject
     Stats::Scalar tagAccesses;
     /** Number of data blocks consulted over all accesses. */
     Stats::Scalar dataAccesses;
+    /** Number of dead lines getting evicted */
+    Stats::Scalar dead_lines;
+    /** Number of total lines getting evicted */
+    Stats::Scalar total_evicted_lines;
 
     /**
      * @}

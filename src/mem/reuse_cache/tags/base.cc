@@ -158,6 +158,16 @@ BaseTags2::regStats()
         .desc("Number of data accesses")
         ;
 
-    registerDumpCallback(new BaseTags2DumpCallback(this));
+    dead_lines
+        .name(name() + ".dead_lines")
+        .desc("Number of dead lines getting evicted!")
+        ;
+
+    total_evicted_lines
+        .name(name() + ".total_evicted_lines")
+        .desc("Number of total lines getting evicted!")
+        ;
+
+    (new BaseTags2DumpCallback(this));
     registerExitCallback(new BaseTags2Callback(this));
 }

@@ -314,9 +314,14 @@ public:
          if (blk->isValid()) {
              replacements[0]++;
              totalRefs += blk->refCount;
+	     total_evicted_lines++;
+	     if (blk->refCount == 0)
+	     {
+		dead_lines++;
+	     }
              ++sampledRefs;
              blk->refCount = 0;
-
+		
              // deal with evicted block
              assert(blk->srcMasterId < cache->system->maxMasters());
              occupancies[blk->srcMasterId]--;
