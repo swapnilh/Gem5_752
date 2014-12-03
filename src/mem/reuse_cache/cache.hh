@@ -208,6 +208,8 @@ class Cache : public ReuseCache
      */
     bool access(PacketPtr pkt, BlkType *&blk,
                 Cycles &lat, PacketList &writebacks);
+    bool accessAtomic(PacketPtr pkt, BlkType *&blk,
+                Cycles &lat, PacketList &writebacks);
 
     /**
      *Handle doing the Compare and Swap function for SPARC.
@@ -236,6 +238,8 @@ class Cache : public ReuseCache
     BlkType *handleFill(PacketPtr pkt, BlkType *blk,
                         PacketList &writebacks);
 
+    BlkType *handleFillAtomic(PacketPtr pkt, BlkType *blk,
+                        PacketList &writebacks);
 
     /**
      * Performs the access specified by the request.
@@ -288,6 +292,9 @@ class Cache : public ReuseCache
                                bool deferred_response = false,
                                bool pending_downgrade = false);
     void satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, BlkType *blk,
+                               bool deferred_response = false,
+                               bool pending_downgrade = false);
+    void satisfyCpuSideRequestAtomic(PacketPtr pkt, BlkType *blk,
                                bool deferred_response = false,
                                bool pending_downgrade = false);
 

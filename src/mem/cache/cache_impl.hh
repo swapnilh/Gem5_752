@@ -181,6 +181,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
             blk->trackLoadLocked(pkt);
         }
         pkt->setDataFromBlock(blk->data, blkSize);
+	DPRINTF(Cache, "CS752: Forwarding read data here-> blk:%d || pkt:%d\n",*(blk->data),*(pkt->getPtr<uint8_t>()));
         if (pkt->getSize() == blkSize) {
             // special handling for coherent block requests from
             // upper-level caches

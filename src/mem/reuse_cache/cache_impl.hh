@@ -107,6 +107,7 @@ template<class TagStore>
 void
 Cache<TagStore>::cmpAndSwap(BlkType *blk, PacketPtr pkt)
 {
+    DPRINTF(Cache, "CS752: in cmpAndSWAP SHOULD NOT BE HERE!!\n");
     assert(pkt->isRequest());
 
     uint64_t overwrite_val;
@@ -143,6 +144,100 @@ Cache<TagStore>::cmpAndSwap(BlkType *blk, PacketPtr pkt)
     if (overwrite_mem) {
         std::memcpy(blk_data, &overwrite_val, pkt->getSize());
         blk->status |= BlkDirty;
+    }
+}
+
+template<class TagStore>
+void
+Cache<TagStore>::satisfyCpuSideRequestAtomic(PacketPtr pkt, BlkType *blk,
+                                       bool deferred_response,
+                                       bool pending_downgrade)
+{
+    assert(pkt->isRequest());
+
+    assert(blk && blk->isValid());
+    // Occasionally this is not true... if we are a lower-level cache
+    // satisfying a string of Read and ReadEx requests from
+    // upper-level caches, a Read will mark the block as shared but we
+    // can satisfy a following ReadEx anyway since we can rely on the
+    // Read requester(s) to have buffered the ReadEx snoop and to
+    // invalidate their blocks after receiving them.
+    // assert(!pkt->needsExclusive() || blk->isWritable());
+    assert(pkt->getOffset(blkSize) + pkt->getSize() <= blkSize);
+
+    // Check RMW operations first since both isRead() and
+    // isWrite() will be true for them
+    if (pkt->cmd == MemCmd::SwapReq) {
+        cmpAndSwap(blk, pkt);
+    } else if (pkt->isWrite()) {
+        if (blk->checkWrite(pkt)) {
+            pkt->writeDataToBlock(blk->data->data, blkSize);
+        }
+        // Always mark the line as dirty even if we are a failed
+        // StoreCond so we supply data to any snoops that have
+        // appended themselves to this cache before knowing the store
+        // will fail.
+        blk->status |= BlkDirty;
+    } else if (pkt->isRead()) {
+        if (pkt->isLLSC()) {
+            blk->trackLoadLocked(pkt);
+        }
+        pkt->setDataFromBlock(blk->data->data, blkSize);
+        if (pkt->getSize() == blkSize) {
+            // special handling for coherent block requests from
+            // upper-level caches
+            if (pkt->needsExclusive()) {
+                // if we have a dirty copy, make sure the recipient
+                // keeps it marked dirty
+                if (blk->isDirty()) {
+                    pkt->assertMemInhibit();
+                }
+                // on ReadExReq we give up our copy unconditionally
+                if (blk != tempBlock)
+                    tags->invalidate(blk);
+                blk->invalidate();
+            } else if (blk->isWritable() && !pending_downgrade
+                      && !pkt->sharedAsserted() && !pkt->req->isInstFetch()) {
+                // we can give the requester an exclusive copy (by not
+                // asserting shared line) on a read request if:
+                // - we have an exclusive copy at this level (& below)
+                // - we don't have a pending snoop from below
+                //   signaling another read request
+                // - no other cache above has a copy (otherwise it
+                //   would have asseretd shared line on request)
+                // - we are not satisfying an instruction fetch (this
+                //   prevents dirty data in the i-cache)
+
+                if (blk->isDirty()) {
+                    // special considerations if we're owner:
+                    if (!deferred_response && !isTopLevel) {
+                        // if we are responding immediately and can
+                        // signal that we're transferring ownership
+                        // along with exclusivity, do so
+                        pkt->assertMemInhibit();
+                        blk->status &= ~BlkDirty;
+                    } else {
+                        // if we're responding after our own miss,
+                        // there's a window where the recipient didn't
+                        // know it was getting ownership and may not
+                        // have responded to snoops correctly, so we
+                        // can't pass off ownership *or* exclusivity
+                        pkt->assertShared();
+                    }
+                }
+            } else {
+                // otherwise only respond with a shared copy
+                pkt->assertShared();
+            }
+        }
+    } else {
+        // Not a read or write... must be an upgrade.  it's OK
+        // to just ack those as long as we have an exclusive
+        // copy at this level.
+        assert(pkt->isUpgrade());
+        assert(blk != tempBlock);
+        tags->invalidate(blk);
+        blk->invalidate();
     }
 }
 
@@ -327,7 +422,11 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 	    DPRINTF(Cache, "CS752: in satisfyCpuSideRequestTagOnly and PACKET-isLLSC SHOULDNT BE HERE for ARM\n");
             blk->trackLoadLocked(pkt);
         }
-        pkt->setData(mempkt->getPtr<uint8_t>());
+	DataBlock *tmp = new DataBlock; 
+        std::memcpy(tmp->data, mempkt->getPtr<uint8_t>(), blkSize);	 
+        pkt->setDataFromBlock(tmp->data,blkSize);
+	DPRINTF(Cache, "CS752: Forwarding read data directly!! blk:%d mempkt:%d || pkt:%d\n",*(tmp->data+pkt->getOffset(blkSize)),*(mempkt->getPtr<uint8_t>()),*(pkt->getPtr<uint8_t>()));
+
         if (pkt->getSize() == blkSize) {
             // special handling for coherent block requests from
             // upper-level caches
@@ -447,6 +546,130 @@ Cache<TagStore>::squash(int threadNum)
 // Access path: requests coming in from the CPU side
 //
 /////////////////////////////////////////////////////
+
+template<class TagStore>
+bool
+Cache<TagStore>::accessAtomic(PacketPtr pkt, BlkType *&blk,
+                        Cycles &lat, PacketList &writebacks)
+{
+    // sanity check
+    assert(pkt->isRequest());
+
+    DPRINTF(Cache, "%s for %s address %x size %d\n", __func__,
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
+    if (pkt->req->isUncacheable()) {
+        uncacheableFlush(pkt);
+        blk = NULL;
+        lat = hitLatency;
+        return false;
+    }
+
+    int id = pkt->req->hasContextId() ? pkt->req->contextId() : -1;
+    blk = tags->accessBlock(pkt->getAddr(), pkt->isSecure(), lat, id);
+
+    DPRINTF(Cache, "%s%s %x (%s) %s %s\n", pkt->cmdString(),
+            pkt->req->isInstFetch() ? " (ifetch)" : "",
+            pkt->getAddr(), pkt->isSecure() ? "s" : "ns",
+            blk ? "hit" : "miss", blk ? blk->print() : "");
+
+    // Writeback handling is special case.  We can write the block
+    // into the cache without having a writeable copy (or any copy at
+    // all).  Like writebacks, we write into the cache upon initial
+    // receipt of a write-invalidate packets as well.
+    if ((pkt->cmd == MemCmd::Writeback) ||
+       ((pkt->cmd == MemCmd::WriteInvalidateReq) && isTopLevel)) {
+        assert(blkSize == pkt->getSize());
+        if (blk == NULL) {
+            // need to do a replacement
+            blk = allocateBlock(pkt->getAddr(), pkt->isSecure(), writebacks);
+            if (blk == NULL) {
+                // no replaceable block available, give up.
+                // Writeback will be forwarded to next level,
+                // WriteInvalidate will be retried.
+                incMissCount(pkt);
+                return false;
+            }
+	    else {
+		    Addr addr = pkt->getAddr();
+		    DataBlock *datablk = allocateDataBlock(addr);
+		    DPRINTF(Cache, "CS752:: AccessATOMIC! Allocated Data block, as the data is valid for datablock :: %s \n",datablk->print());	
+		    if(datablk->data_valid) {
+			    BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
+			    DPRINTF(Cache, "CS752:: AccessATOMIC! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+			    //			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
+			    if(backptr->isDirty()) {
+				    PacketPtr wbPkt = writebackBlk(backptr);
+				    allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
+			    }
+			    //		backptr->invalidateData();
+			    backptr->invalidate();
+			    DPRINTF(Cache, "CS752:: AccessATOMIC! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+		    }
+		    assert(datablk != NULL);
+		    datablk->data_valid = 1;
+		    datablk->bp_set = tags->extractSet(addr);
+		    datablk->bp_way = tags->findBlockandreturnWay(addr,pkt->isSecure());
+		    assert(datablk->bp_way != 8);
+		    blk->data = datablk;	    
+		    //std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize); //TODO ADDCODE VERIFY
+		    blk->status &= ~BlkTagOnly;
+		    blk->hasData = 1;
+
+	    }
+	    tags->insertBlock(pkt, blk);
+
+	    blk->status = (BlkValid | BlkReadable);
+	    if (pkt->isSecure()) {
+                blk->status |= BlkSecure;
+            }
+        }
+        if (pkt->cmd == MemCmd::Writeback) {
+            blk->status |= BlkDirty;
+            if (pkt->isSupplyExclusive()) {
+                blk->status |= BlkWritable;
+            }
+            // nothing else to do; writeback doesn't expect response
+            assert(!pkt->needsResponse());
+        } else if (pkt->cmd == MemCmd::WriteInvalidateReq) {
+            blk->status |= (BlkReadable | BlkDirty | BlkCanGoExclusive);
+            blk->status &= ~BlkWritable;
+            ++fastWrites;
+        }
+        std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
+        DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
+        incHitCount(pkt);
+        return true;
+    } else if ((pkt->cmd == MemCmd::WriteInvalidateReq) && !isTopLevel) {
+        if (blk != NULL) {
+            assert(blk != tempBlock);
+            tags->invalidate(blk);
+            blk->invalidate();
+        }
+        return true;
+    } else if ((blk != NULL) &&
+               (pkt->needsExclusive() ? blk->isWritable()
+                                      : blk->isReadable())) {
+        // OK to satisfy access
+        incHitCount(pkt);
+        satisfyCpuSideRequest(pkt, blk);
+        return true;
+    }
+
+    // Can't satisfy access normally... either no block (blk == NULL)
+    // or have block but need exclusive & only have shared.
+
+    incMissCount(pkt);
+
+    if (blk == NULL && pkt->isLLSC() && pkt->isWrite()) {
+        // complete miss on store conditional... just give up now
+        pkt->req->setExtraData(0);
+        return true;
+    }
+
+    return false;
+}
+
+
 
 template<class TagStore>
 bool
@@ -1048,7 +1271,7 @@ Cache<TagStore>::recvAtomic(PacketPtr pkt)
     BlkType *blk = NULL;
     PacketList writebacks;
 
-    if (!access(pkt, blk, lat, writebacks)) {
+    if (!accessAtomic(pkt, blk, lat, writebacks)) {
         // MISS
 
         // WriteInvalidates should never fail an access() in Atomic mode
@@ -1093,8 +1316,9 @@ Cache<TagStore>::recvAtomic(PacketPtr pkt)
                            bus_pkt->cmd == MemCmd::UpgradeResp) {
                     // we're updating cache state to allow us to
                     // satisfy the upstream request from the cache
-                    blk = handleFill(bus_pkt, blk, writebacks);
-                    satisfyCpuSideRequest(pkt, blk);
+		    DPRINTF(Cache, "SHOULD NOT BE HEREE!!! SWAPNIL!!!!\n");
+                    blk = handleFillAtomic(bus_pkt, blk, writebacks);
+                    satisfyCpuSideRequestAtomic(pkt, blk);
                 } else {
                     // we're satisfying the upstream request without
                     // modifying cache state, e.g., a write-through
@@ -1680,6 +1904,115 @@ Cache<TagStore>::allocateDataBlock(Addr addr)
 // is called by both atomic and timing-mode accesses, and in atomic
 // mode we don't mess with the write buffer (we just perform the
 // writebacks atomically once the original request is complete).
+template<class TagStore>
+typename Cache<TagStore>::BlkType*
+Cache<TagStore>::handleFillAtomic(PacketPtr pkt, BlkType *blk,
+                            PacketList &writebacks)
+{
+    assert(pkt->isResponse());
+    Addr addr = pkt->getAddr();
+    bool is_secure = pkt->isSecure();
+#if TRACING_ON
+    ReuseCacheBlk::State old_state = blk ? blk->status : 0;
+#endif
+
+    if (blk == NULL) {
+        // better have read new data...
+        assert(pkt->hasData());
+        // need to do a replacement
+        blk = allocateBlock(addr, is_secure, writebacks);
+        if (blk == NULL) {
+            // No replaceable block... just use temporary storage to
+            // complete the current request and then get rid of it
+            assert(!tempBlock->isValid());
+            blk = tempBlock;
+            tempBlock->set = tags->extractSet(addr);
+            tempBlock->tag = tags->extractTag(addr);
+            // @todo: set security state as well...
+            DPRINTF(Cache, "using temp block for %x (%s)\n", addr,
+                    is_secure ? "s" : "ns");
+        } else {
+            tags->insertBlock(pkt, blk);
+        }
+
+        // we should never be overwriting a valid block
+        assert(!blk->isValid());
+    } else {
+        // existing block... probably an upgrade
+        assert(blk->tag == tags->extractTag(addr));
+        // either we're getting new data or the block should already be valid
+        assert(pkt->hasData() || blk->isValid());
+        // don't clear block status... if block is already dirty we
+        // don't want to lose that
+    }
+
+    if (is_secure)
+        blk->status |= BlkSecure;
+    blk->status |= BlkValid | BlkReadable;
+
+    if (!pkt->sharedAsserted()) {
+        blk->status |= BlkWritable;
+        // If we got this via cache-to-cache transfer (i.e., from a
+        // cache that was an owner) and took away that owner's copy,
+        // then we need to write it back.  Normally this happens
+        // anyway as a side effect of getting a copy to write it, but
+        // there are cases (such as failed store conditionals or
+        // compare-and-swaps) where we'll demand an exclusive copy but
+        // end up not writing it.
+        // Caveat: if a Read takes a value from a WriteInvalidate MSHR,
+        // it will get marked Dirty even though it is Clean (once the
+        // WriteInvalidate completes). This is due to insufficient meta-
+        // data and overly presumptive interpretation of the inhibit flag.
+        // The result is an unnecessary extra writeback.
+        if (pkt->memInhibitAsserted())
+            blk->status |= BlkDirty;
+    }
+
+    if (pkt->cmd == MemCmd::WriteInvalidateReq) {
+        // a block written immediately, all at once, pre-writeback is dirty
+        blk->status |= BlkDirty;
+    }
+
+    DPRINTF(Cache, "Block addr %x (%s) moving from state %x to %s\n",
+            addr, is_secure ? "s" : "ns", old_state, blk->print());
+
+    // if we got new data, copy it in
+    if (pkt->isRead()) {
+	if(!blk->isFilled()){    
+		DataBlock *datablk = allocateDataBlock(addr);
+		DPRINTF(Cache, "CS752:: READ! ATOMIC! Allocated Data block, as the data is valid for datablock :: %s \n",datablk->print());	
+		if(datablk->data_valid) {
+			BlkType *backptr = tags->findBlockfromTag(datablk->bp_way, datablk->bp_set);
+			DPRINTF(Cache, "CS752:: READ! ATOMIC! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+			//			tags->invalidate(backptr); TODO ADDCODE FIXME, I am not invalidating tag, only removing data!
+			if(backptr->isDirty()) {
+				PacketPtr wbPkt = writebackBlk(backptr);
+				allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
+			}
+			//		backptr->invalidateData();
+			backptr->invalidate();
+			DPRINTF(Cache, "CS752:: READ! ATOMIC! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+		}
+		assert(datablk != NULL);
+		datablk->data_valid = 1;
+		datablk->bp_set = tags->extractSet(addr);
+		datablk->bp_way = tags->findBlockandreturnWay(addr,pkt->isSecure());
+		assert(datablk->bp_way != 8);
+		blk->data = datablk;	    
+		std::memcpy(blk->data->data, pkt->getPtr<uint8_t>(), blkSize);
+		blk->status &= ~BlkTagOnly;
+		blk->hasData = 1;
+	}
+	if(!isTopLevel)	DPRINTF(Cache, "CS752:: ATOMIC! Block addr %x forwarding data to L1 || %s\n", addr, blk->print());
+    }
+
+    blk->whenReady = clockEdge() + responseLatency * clockPeriod() +
+        pkt->lastWordDelay;
+
+    return blk;
+}
+
+
 template<class TagStore>
 typename Cache<TagStore>::BlkType*
 Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
