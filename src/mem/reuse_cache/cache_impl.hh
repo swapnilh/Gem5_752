@@ -394,9 +394,9 @@ Cache<TagStore>::satisfyCpuSideRequestTagOnly(PacketPtr pkt, PacketPtr mempkt, B
 				PacketPtr wbPkt = writebackBlk(backptr);
 			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
 			}
-//			backptr->invalidateData();
-			backptr->invalidate();
-			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+			backptr->invalidateData();
+//			backptr->invalidate();
+			DPRINTF(Cache, "CS752:: Invalidate ONLY data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 		}
 		assert(datablk != NULL);
 		datablk->data_valid = 1;
@@ -750,9 +750,9 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
 				PacketPtr wbPkt = writebackBlk(backptr);
 			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
 			}
-//			backptr->invalidateData();
-			backptr->invalidate();
-			DPRINTF(Cache, "CS752:: Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+			backptr->invalidateData();
+//			backptr->invalidate();
+			DPRINTF(Cache, "CS752:: Invalidate ONLY data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 		}
 		datablk->data_valid = 1;
 		datablk->bp_set = tags->extractSet(pkt->getAddr());
@@ -2103,9 +2103,9 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 				PacketPtr wbPkt = writebackBlk(backptr);
 			        allocateWriteBuffer(wbPkt, clockEdge(hitLatency), true);	
 		}
-//		backptr->invalidateData();
-		backptr->invalidate();
-		DPRINTF(Cache, "CS752:: READ! Invalidate data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
+		backptr->invalidateData();
+//		backptr->invalidate();
+		DPRINTF(Cache, "CS752:: READ! Invalidate ONLY data block, as the data is valid for datablock :: %s tagblock: %s \n",datablk->print(), backptr->print());
 	}
         assert(datablk != NULL);
 	datablk->data_valid = 1;
@@ -2550,7 +2550,7 @@ Cache<TagStore>::getTimingPacket()
 
     if (mshr->isForwardNoResponse()) {
         // no response expected, just forward packet as it is
-        assert(tags->findBlock(mshr->addr, mshr->isSecure) == NULL);
+//        assert(tags->findBlock(mshr->addr, mshr->isSecure) == NULL);
         pkt = tgt_pkt;
     } else {
         BlkType *blk = tags->findBlock(mshr->addr, mshr->isSecure);

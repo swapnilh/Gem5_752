@@ -54,17 +54,28 @@ BaseSetAssoc2::BlkType*
 RandomRepl2::findVictim(Addr addr) const
 {
     BlkType *blk = BaseSetAssoc2::findVictim(addr);
+    int set = extractSet(addr);
 
     // if all blocks are valid, pick a replacement at random
-    if (blk->isValid()) {
-        // find a random index within the bounds of the set
-        int idx = random_mt.random<int>(0, assoc - 1);
-        assert(idx < assoc);
-        assert(idx >= 0);
-        blk = sets[extractSet(addr)].blks[idx];
+ if (blk->isValid()) {
+        for (int i = 0; i < assoc; ++i) {
+            blk = sets[set].blks[i];
+            if (!blk->isFilled()) {
+		    DPRINTF(Cache, "CS752:: Found Tag only victim in way i=%d for assoc %d \n", i, assoc);
+		    break;
+            }
+        }
+	if (blk->isFilled()) {
 
-        DPRINTF(CacheRepl, "CS752:: set %x: selecting blk %x in way %d with assoc %d for replacement\n",
+		// find a random index within the bounds of the set
+		int idx = random_mt.random<int>(0, assoc - 1);
+		assert(idx < assoc);
+		assert(idx >= 0);
+		blk = sets[extractSet(addr)].blks[idx];
+
+		DPRINTF(CacheRepl, "CS752:: set %x: selecting blk %x in way %d with assoc %d for replacement\n",
                 blk->set, idx, assoc, regenerateBlkAddr(blk->tag, blk->set));
+	}
     }
 
     return blk;

@@ -262,6 +262,7 @@ class ReuseCacheBlk
      */
     void invalidateData()
     {
+        status &= ~BlkDirty;
         status |= BlkTagOnly;
 	data->invalidate();
 	data = NULL;

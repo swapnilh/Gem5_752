@@ -1,9 +1,9 @@
 #!/bin/bash
-file=test1;
-test=mb;
-./build/ARM/gem5.opt --outdir=stats_unchanged${file} --debug-flags=Cache --debug-file=unchanged.out ./configs/example/se_base.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=64kB -I 10000000000 --cpu-type=detailed |& tee log2
- ./build/ARM/gem5.opt --outdir=stats_changed${file} --debug-flags=Cache --debug-file=changed.out ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=64kB -I 10000000000 --cpu-type=detailed |& tee log
+file=mb_1;
+test=mb_1;
+./build/ARM/gem5.opt --outdir=stats_unchanged${file} ./configs/example/se_base.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log2
+ ./build/ARM/gem5.opt --outdir=stats_changed${file}  ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log
 #gvimdiff stats_unchanged${file}/stats.txt stats_changed${file}/stats.txt 
 # ./build/ARM/gem5.opt --outdir=stats_changed${file} --debug-file=changed.out ./configs/example/se.py --cmd=tests/mb/${test} --num-cpus=1 --caches --l1i_size=16kB --l1i_assoc=4 --l1d_size=16kB --l1d_assoc=4 --l2cache --l2_assoc=8 --l2_size=2MB -I 10000000000 --cpu-type=detailed |& tee log
-./build/ARM/gem5.opt configs/example/fs.py.asimbench -r 1 --checkpoint-dir=base_ckpt/ --machine-type=VExpress_EMM --kernel vmlinux.performance --dtb-filename vexpress-v2p-ca15-tc1-gem5_dvfs_1cpus.dtb --cpu-type=DerivO3CPU --caches --l1d_size=32kB --l1i_size=32kB --l2cache --disk-image=ARMv7a-ICS-Android.SMP.Asimbench-v3.img --script=asimbench_reuse/k9mail.rcS
-./build/ARM/gem5.opt --debug-flags=Cache,Exec,-ExecTicks --debug-file=trace.out --outdir=reuse_boot configs/example/fs.py.asimbench --machine-type=VExpress_EMM --kernel vmlinux.performance --dtb-filename vexpress-v2p-ca15-tc1-gem5_dvfs_1cpus.dtb --cpu-type=DerivO3CPU --caches --l1d_size=16kB --l1i_size=16kB --l2cache --disk-image=ARMv7a-ICS-Android.SMP.Asimbench-v3.img
+#./build/ARM/gem5.opt configs/example/fs.py.asimbench -r 1 --checkpoint-dir=base_ckpt/ --machine-type=VExpress_EMM --kernel vmlinux.performance --dtb-filename vexpress-v2p-ca15-tc1-gem5_dvfs_1cpus.dtb --cpu-type=DerivO3CPU --caches --l1d_size=32kB --l1i_size=32kB --l2cache --disk-image=ARMv7a-ICS-Android.SMP.Asimbench-v3.img --script=asimbench_reuse/k9mail.rcS
+#./build/ARM/gem5.opt --debug-flags=Cache,Exec,-ExecTicks --debug-file=trace.out --outdir=reuse_boot configs/example/fs.py.asimbench --machine-type=VExpress_EMM --kernel vmlinux.performance --dtb-filename vexpress-v2p-ca15-tc1-gem5_dvfs_1cpus.dtb --cpu-type=DerivO3CPU --caches --l1d_size=16kB --l1i_size=16kB --l2cache --disk-image=ARMv7a-ICS-Android.SMP.Asimbench-v3.img
