@@ -1456,6 +1456,7 @@ Cache<TagStore>::allocateBlock(Addr addr, bool is_secure,
         }
     }
 
+    tags->increment_data_blocks_fetched();
     return blk;
 }
 

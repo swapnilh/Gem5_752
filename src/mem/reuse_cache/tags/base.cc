@@ -168,6 +168,16 @@ BaseTags2::regStats()
         .desc("Number of total lines getting evicted!")
         ;
 
-    (new BaseTags2DumpCallback(this));
+    data_blocks_fetched
+        .name(name() + ".data_blocks_fetched")
+        .desc("Number of total **DATA** blocks that are getting filled!")
+        ;
+
+    data_blocks_live
+        .name(name() + ".data_blocks_live")
+        .desc("Number of total **DATA** blocks that are getting reused!")
+        ;
+
+    registerDumpCallback(new BaseTags2DumpCallback(this));
     registerExitCallback(new BaseTags2Callback(this));
 }

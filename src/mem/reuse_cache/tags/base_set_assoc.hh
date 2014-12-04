@@ -205,10 +205,26 @@ public:
                 lat = cache->ticksToCycles(blk->whenReady - curTick());
             }
             blk->refCount += 1;
+	    if (blk->refCount == 1)
+	    {
+		data_blocks_fetched++;
+	    }
+	    else if (blk->refCount == 2)
+	    {
+		data_blocks_live++;
+	    }
         }
 
 	else if (blk != NULL && !blk->isFilled()) {//RUC
 	            blk->refCount += 1;
+		    if (blk->refCount == 1)
+		    {
+			    data_blocks_fetched++;
+		    }
+		    else if (blk->refCount == 2)
+		    {
+			    data_blocks_live++;
+		    }
 		    //TODO ADDCODE1 FETCH DATA CODE HERE
 		}
 

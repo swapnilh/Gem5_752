@@ -177,6 +177,11 @@ public:
     void invalidate(BlkType *blk);
 
     /**
+     * 
+     */
+    void increment_data_blocks_fetched();
+
+    /**
      * Access block and update replacement data.  May not succeed, in which case
      * NULL pointer is returned.  This has all the implications of a cache
      * access and should only be used as such.

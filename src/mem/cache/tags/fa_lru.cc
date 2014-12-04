@@ -169,6 +169,12 @@ FALRU::invalidate(FALRU::BlkType *blk)
     tagsInUse--;
 }
 
+void
+FALRU::increment_data_blocks_fetched()
+{
+data_blocks_fetched++;
+}
+
 FALRUBlk*
 FALRU::accessBlock(Addr addr, bool is_secure, Cycles &lat, int context_src,
                    int *inCache)

@@ -72,6 +72,7 @@
  * BlkType* findVictim();
  * void insertBlock();
  * void invalidate();
+ * void increment_data_blocks_fetched();
  */
 class BaseSetAssoc : public BaseTags
 {
@@ -160,6 +161,14 @@ public:
         blk->task_id = ContextSwitchTaskId::Unknown;
         blk->tickInserted = curTick();
     }
+    
+     /**
+     * Update stats for total lines fecthed
+     */
+    void increment_data_blocks_fetched()
+    {
+	data_blocks_fetched++;
+    }
 
     /**
      * Access block and update replacement data. May not succeed, in which case
@@ -199,6 +208,10 @@ public:
                 lat = cache->ticksToCycles(blk->whenReady - curTick());
             }
             blk->refCount += 1;
+	    if (blk->refCount == 1)
+	    {
+		data_blocks_live++;
+	    }
         }
 
         return blk;
@@ -264,6 +277,11 @@ public:
          if (blk->isValid()) {
              replacements[0]++;
              totalRefs += blk->refCount;
+	     total_evicted_lines++;
+	     if(blk->refCount == 0)
+	     {
+		dead_lines++;
+             }
              ++sampledRefs;
              blk->refCount = 0;
 

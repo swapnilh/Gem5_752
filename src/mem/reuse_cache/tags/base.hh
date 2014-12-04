@@ -139,6 +139,10 @@ class BaseTags2 : public ClockedObject
     Stats::Scalar dead_lines;
     /** Number of total lines getting evicted */
     Stats::Scalar total_evicted_lines;
+    /** Number of total l2 data blocks getting filled i.e. refcount == 1*/
+    Stats::Scalar data_blocks_fetched;
+    /** Number of total l2 data blocks getting live i.e. refcount == 2 */
+    Stats::Scalar data_blocks_live;
 
     /**
      * @}
