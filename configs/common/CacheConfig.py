@@ -69,7 +69,8 @@ def config_cache(options, system):
         # bytes (256 bits).
         system.l2 = l2_cache_class(clk_domain=system.cpu_clk_domain,
                                    size=options.l2_size,
-                                   assoc=options.l2_assoc)
+                                   assoc=options.l2_assoc,
+                                   mapping_factor=options.mapping_factor)
 
         system.tol2bus = CoherentXBar(clk_domain = system.cpu_clk_domain,
                                       width = 32)

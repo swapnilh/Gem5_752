@@ -56,6 +56,7 @@ class L1Cache(BaseCache):
 
 class L2Cache(ReuseCache):
     assoc = 8
+    mapping_factor = 4
     hit_latency = 20
     response_latency = 20
     mshrs = 20

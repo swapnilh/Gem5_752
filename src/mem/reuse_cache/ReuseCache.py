@@ -48,6 +48,7 @@ class ReuseCache(MemObject):
     type = 'ReuseCache'
     cxx_header = "mem/reuse_cache/base.hh"
     assoc = Param.Int("associativity")
+    mapping_factor = Param.Int("Tag Sets to Data Sets Ratio")
     hit_latency = Param.Cycles("The hit latency for this cache")
     response_latency = Param.Cycles(
             "Additional cache latency for the return path to core on a miss");

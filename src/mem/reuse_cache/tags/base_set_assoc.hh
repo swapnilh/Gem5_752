@@ -91,6 +91,7 @@ class BaseSetAssoc2 : public BaseTags2
   protected:
     /** The associativity of the cache. */
     const unsigned assoc;
+    const unsigned mapping_factor;
     /** The number of sets in the cache. */
     const unsigned numSets;
     /** Whether tags and data are accessed sequentially. */

@@ -58,6 +58,7 @@ class BaseSetAssoc2(BaseTags2):
     abstract = True
     cxx_header = "mem/reuse_cache/tags/base_set_assoc.hh"
     assoc = Param.Int(Parent.assoc, "associativity")
+    mapping_factor = Param.Int(Parent.mapping_factor, "Mapping Factor")
     sequential_access = Param.Bool(Parent.sequential_access,
         "Whether to access tags and data sequentially")
 

@@ -54,7 +54,7 @@
 using namespace std;
 
 BaseSetAssoc2::BaseSetAssoc2(const Params *p)
-    :BaseTags2(p), assoc(p->assoc),
+    :BaseTags2(p), assoc(p->assoc),mapping_factor(p->mapping_factor),
      numSets(p->size / (p->block_size * p->assoc)),
      sequentialAccess(p->sequential_access)
 {
@@ -84,7 +84,7 @@ BaseSetAssoc2::BaseSetAssoc2(const Params *p)
     // allocate data storage in one big chunk
     numBlocks = numSets * assoc;
     //dataBlks = new uint8_t[numBlocks * blkSize];
-    dataBlks = new dataType[numBlocks/4];//RUC TODO FIXME
+    dataBlks = new dataType[numBlocks/mapping_factor];//RUC TODO FIXME
 
     unsigned blkIndex = 0;       // index into blks array
     for (unsigned i = 0; i < numSets; ++i) {
