@@ -52,6 +52,7 @@
 #include <cstring>
 #include <list>
 
+#include "base/intmath.hh"
 #include "mem/reuse_cache/tags/base.hh"
 #include "mem/reuse_cache/tags/cacheset.hh"
 #include "mem/reuse_cache/base.hh"
@@ -280,7 +281,7 @@ public:
     {
         DataBlock *datablk = NULL;
         int set = extractSet(addr);
-        set = set >> 2; //TODO ADDCODE IS THIS CORRECT?
+        set = set >> floorLog2(mapping_factor); //TODO ADDCODE IS THIS CORRECT?
 
         // prefer to evict an invalid block
         for (int i = set*assoc; i < set*assoc+assoc; ++i) {

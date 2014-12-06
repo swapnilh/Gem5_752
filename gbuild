@@ -1,1 +1,1 @@
-scons build/ARM/gem5.opt -j2
+scons build/ARM/gem5.fast -j6

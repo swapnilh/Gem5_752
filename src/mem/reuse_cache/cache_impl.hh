@@ -74,7 +74,8 @@ Cache<TagStore>::Cache(const Params *p)
       prefetchOnAccess(p->prefetch_on_access)
 {
     tempBlock = new BlkType();
-//    tempBlock->data->data = new uint8_t[blkSize];
+    tempBlock->hasData = 1;
+    tempBlock->data = new DataBlock();
 
     cpuSidePort = new CpuSidePort(p->name + ".cpu_side", this,
                                   "CpuSidePort");
@@ -89,7 +90,7 @@ Cache<TagStore>::Cache(const Params *p)
 template<class TagStore>
 Cache<TagStore>::~Cache()
 {
-    delete [] tempBlock->data->data;
+//    delete [] tempBlock->data->data;
     delete tempBlock;
 
     delete cpuSidePort;
